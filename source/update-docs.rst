@@ -1,9 +1,19 @@
 Updating this Documentation
 ================================================================================
 
+.. _update-docs-repo:
+
+Source Repository and Read the Docs
+--------------------------------------------------------------------------------
+
+The source code for this documentation is `hosted on GitHub
+<https://github.com/CWRUChielLab/neurowiki-docs>`__. Changes made there will
+automatically be compiled and appear on `Read the Docs
+<https://neurowiki-docs.readthedocs.io/>`__.
+
 .. _update-docs-compile:
 
-Compiling the Docs
+Compiling the Docs Locally
 --------------------------------------------------------------------------------
 
 .. todo::
