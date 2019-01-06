@@ -13,7 +13,7 @@ Configure Automatic Backup
 
 3.  Download and install the backup script::
 
-        sudo wget -O /usr/local/sbin/backup-wiki https://dynamicshjc.case.edu/~vbox/biol373/_downloads/backup-wiki
+        sudo wget -O /usr/local/sbin/backup-wiki https://neurowiki-docs.readthedocs.io/en/latest/_downloads/backup-wiki
 
     Set the MySQL password inside the script::
 

@@ -223,7 +223,7 @@ Copy Old Wiki Contents
     of images and files. This includes the wiki logo, favicon, and figures from
     the units and benchmark exemplars::
 
-        wget -P ~ https://dynamicshjc.case.edu/~vbox/biol373/_downloads/BIOL-373-Files-to-Import.tar.bz2
+        wget -P ~ https://neurowiki-docs.readthedocs.io/en/latest/_downloads/BIOL-373-Files-to-Import.tar.bz2
         tar -xjf ~/BIOL-373-Files-to-Import.tar.bz2 -C ~
         php /var/www/mediawiki/maintenance/importImages.php --user=Hjc ~/BIOL-373-Files-to-Import
         sudo apache2ctl restart

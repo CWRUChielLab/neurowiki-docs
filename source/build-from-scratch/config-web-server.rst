@@ -38,7 +38,7 @@ Configure Web Server with HTTPS
 
 6.  Download and install the ``check-ssl-cert-expiration`` script::
 
-        sudo wget -O /usr/local/sbin/check-ssl-cert-expiration https://dynamicshjc.case.edu/~vbox/biol373/_downloads/check-ssl-cert-expiration
+        sudo wget -O /usr/local/sbin/check-ssl-cert-expiration https://neurowiki-docs.readthedocs.io/en/latest/_downloads/check-ssl-cert-expiration
         sudo chmod +x /usr/local/sbin/check-ssl-cert-expiration
 
     The script looks for the shared folder set up in step 2 and prints the
@@ -63,7 +63,7 @@ Configure Web Server with HTTPS
     a custom Apache configuration file for handling SSL certificates::
 
         sudo a2dissite 000-default default-ssl
-        sudo wget -O /etc/apache2/sites-available/smart-ssl.conf https://dynamicshjc.case.edu/~vbox/biol373/_downloads/smart-ssl.conf
+        sudo wget -O /etc/apache2/sites-available/smart-ssl.conf https://neurowiki-docs.readthedocs.io/en/latest/_downloads/smart-ssl.conf
         sudo a2enmod rewrite ssl
         sudo a2ensite smart-ssl
         sudo apache2ctl restart
@@ -102,7 +102,7 @@ Configure Web Server with HTTPS
 10. Discourage bots, such as Google's web crawler, from visiting some parts of
     the site. Download and install ``robots.txt``::
 
-        wget -O /var/www/html/robots.txt https://dynamicshjc.case.edu/~vbox/biol373/_downloads/robots.txt
+        wget -O /var/www/html/robots.txt https://neurowiki-docs.readthedocs.io/en/latest/_downloads/robots.txt
 
     If you are curious about the contents of ``robots.txt``, you can view it
     here:

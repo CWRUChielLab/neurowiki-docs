@@ -156,7 +156,7 @@ Install MediaWiki Extensions
 
 6.  Download and install the CAS (Single Sign-On) configuration file::
 
-        wget -O /var/www/mediawiki/extensions/CASAuth/CASAuthSettings.php https://dynamicshjc.case.edu/~vbox/biol373/_downloads/CASAuthSettings.php
+        wget -O /var/www/mediawiki/extensions/CASAuth/CASAuthSettings.php https://neurowiki-docs.readthedocs.io/en/latest/_downloads/CASAuthSettings.php
 
     Randomize the secret key inside the configuration file::
 
@@ -199,7 +199,7 @@ Install MediaWiki Extensions
     Customizing the mobile site navigation menu by downloading a patch file and
     applying it::
 
-        wget -O /var/www/mediawiki/extensions/MobileFrontend/MobileFrontend_customize-icons.patch https://dynamicshjc.case.edu/~vbox/biol373/_downloads/MobileFrontend_customize-icons.patch
+        wget -O /var/www/mediawiki/extensions/MobileFrontend/MobileFrontend_customize-icons.patch https://neurowiki-docs.readthedocs.io/en/latest/_downloads/MobileFrontend_customize-icons.patch
         patch -d /var/www/mediawiki/extensions/MobileFrontend < /var/www/mediawiki/extensions/MobileFrontend/MobileFrontend_customize-icons.patch
 
     If you are curious about the contents of the patch file, you can view it
@@ -233,7 +233,7 @@ Install MediaWiki Extensions
 
     Download a patch file and apply it::
 
-        wget -O /var/www/mediawiki/extensions/NewArticleTemplate/NewArticleTemplate_always-use-subpage-template.patch https://dynamicshjc.case.edu/~vbox/biol373/_downloads/NewArticleTemplate_always-use-subpage-template.patch
+        wget -O /var/www/mediawiki/extensions/NewArticleTemplate/NewArticleTemplate_always-use-subpage-template.patch https://neurowiki-docs.readthedocs.io/en/latest/_downloads/NewArticleTemplate_always-use-subpage-template.patch
         patch -d /var/www/mediawiki/extensions/NewArticleTemplate < /var/www/mediawiki/extensions/NewArticleTemplate/NewArticleTemplate_always-use-subpage-template.patch
 
     If you are curious about the contents of the patch file, you can view it
@@ -261,7 +261,7 @@ Install MediaWiki Extensions
     Realnames extension includes a bug that causes subpages in the User
     namespace to lack titles. Download a patch file and apply it::
 
-        wget -O /var/www/mediawiki/extensions/Realnames/Realnames_ignore-subpage-titles.patch https://dynamicshjc.case.edu/~vbox/biol373/_downloads/Realnames_ignore-subpage-titles.patch
+        wget -O /var/www/mediawiki/extensions/Realnames/Realnames_ignore-subpage-titles.patch https://neurowiki-docs.readthedocs.io/en/latest/_downloads/Realnames_ignore-subpage-titles.patch
         patch -d /var/www/mediawiki/extensions/Realnames < /var/www/mediawiki/extensions/Realnames/Realnames_ignore-subpage-titles.patch
 
     If you are curious about the contents of the patch file, you can view it
@@ -287,7 +287,7 @@ Install MediaWiki Extensions
     using the ``action=userrights`` API module. Download a patch file and apply
     it::
 
-        wget -O /var/www/mediawiki/includes/user/Lockdown_api-compatibility.patch https://dynamicshjc.case.edu/~vbox/biol373/_downloads/Lockdown_api-compatibility.patch
+        wget -O /var/www/mediawiki/includes/user/Lockdown_api-compatibility.patch https://neurowiki-docs.readthedocs.io/en/latest/_downloads/Lockdown_api-compatibility.patch
         patch -d /var/www/mediawiki/includes/user < /var/www/mediawiki/includes/user/Lockdown_api-compatibility.patch
 
     If you are curious about the contents of the patch file, you can view it
@@ -309,7 +309,7 @@ Install MediaWiki Extensions
 
 13. Download and install the extension configuration settings::
 
-        wget -P ~ https://dynamicshjc.case.edu/~vbox/biol373/_downloads/LocalSettings_extensions.php
+        wget -P ~ https://neurowiki-docs.readthedocs.io/en/latest/_downloads/LocalSettings_extensions.php
         cat ~/LocalSettings_extensions.php >> /var/www/mediawiki/LocalSettings.php
         rm ~/LocalSettings_extensions.php
 
@@ -352,7 +352,7 @@ Install MediaWiki Extensions
 16. Create a script for toggling the locked state of the wiki by downloading and
     installing a file::
 
-        sudo wget -O /usr/local/sbin/lock-wiki https://dynamicshjc.case.edu/~vbox/biol373/_downloads/lock-wiki
+        sudo wget -O /usr/local/sbin/lock-wiki https://neurowiki-docs.readthedocs.io/en/latest/_downloads/lock-wiki
         sudo chmod +x /usr/local/sbin/lock-wiki
 
     If you are curious about the contents of the script, you can view it here:

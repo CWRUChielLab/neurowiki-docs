@@ -46,7 +46,7 @@ The script needs to be installed only once. Skip to
 4.  Download and install the script for creating student accounts and assigning
     students to teams::
 
-        sudo wget -O /usr/local/sbin/register-students-and-teams https://dynamicshjc.case.edu/~vbox/biol373/_downloads/register-students-and-teams
+        sudo wget -O /usr/local/sbin/register-students-and-teams https://neurowiki-docs.readthedocs.io/en/latest/_downloads/register-students-and-teams
 
     Set the MySQL password inside the script::
 

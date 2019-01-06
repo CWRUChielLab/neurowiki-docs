@@ -50,7 +50,7 @@ Building from Last Year
 
 8.  If it is not already installed, download and install the wiki reset script::
 
-        sudo wget -O /usr/local/sbin/reset-wiki https://dynamicshjc.case.edu/~vbox/biol373/_downloads/reset-wiki
+        sudo wget -O /usr/local/sbin/reset-wiki https://neurowiki-docs.readthedocs.io/en/latest/_downloads/reset-wiki
 
     Set the MySQL password inside the script::
 

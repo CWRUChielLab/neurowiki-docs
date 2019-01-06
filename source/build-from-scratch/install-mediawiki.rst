@@ -64,7 +64,7 @@ Install MediaWiki
 
 5.  Download and install a custom Apache configuration file for MediaWiki::
 
-        sudo wget -O /etc/apache2/conf-available/mediawiki.conf https://dynamicshjc.case.edu/~vbox/biol373/_downloads/mediawiki.conf
+        sudo wget -O /etc/apache2/conf-available/mediawiki.conf https://neurowiki-docs.readthedocs.io/en/latest/_downloads/mediawiki.conf
         sudo a2enconf mediawiki
         sudo apache2ctl restart
 
@@ -87,7 +87,7 @@ Install MediaWiki
 
 7.  Download and install the MediaWiki configuration file::
 
-        wget -O /var/www/mediawiki/LocalSettings.php https://dynamicshjc.case.edu/~vbox/biol373/_downloads/LocalSettings.php
+        wget -O /var/www/mediawiki/LocalSettings.php https://neurowiki-docs.readthedocs.io/en/latest/_downloads/LocalSettings.php
 
     Set the passwords and randomize the secret keys inside the configuration
     file::
@@ -120,7 +120,7 @@ Install MediaWiki
 8.  Create a script for toggling a security variable by downloading and
     installing a file::
 
-        sudo wget -O /usr/local/sbin/disable-upload-script-checks https://dynamicshjc.case.edu/~vbox/biol373/_downloads/disable-upload-script-checks
+        sudo wget -O /usr/local/sbin/disable-upload-script-checks https://neurowiki-docs.readthedocs.io/en/latest/_downloads/disable-upload-script-checks
         sudo chmod +x /usr/local/sbin/disable-upload-script-checks
 
     If you are curious about the contents of the script, you can view it here:
@@ -143,7 +143,7 @@ Install MediaWiki
     Since the CASAuth extension, which will be installed later, automatically
     fetches real names, this script should not need to be run regularly. ::
 
-        sudo wget -O /usr/local/sbin/set-real-names-in-mediawiki https://dynamicshjc.case.edu/~vbox/biol373/_downloads/set-real-names-in-mediawiki
+        sudo wget -O /usr/local/sbin/set-real-names-in-mediawiki https://neurowiki-docs.readthedocs.io/en/latest/_downloads/set-real-names-in-mediawiki
 
     Set the MySQL password inside the script::
 
