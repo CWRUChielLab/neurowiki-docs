@@ -1,0 +1,613 @@
+#!/usr/bin/python
+
+# Place this script in /usr/local/sbin and make it executable (chmod +x).
+#
+# This script will ...
+#
+# NOTE: The input file must use spaces for indentation, not tabs.
+#
+# TODO: also dump a CSV file that can be used for checkoffs
+
+
+from __future__ import print_function
+import datetime     # for naming a file with a timestamp
+import ldap         # for querying CWRU servers for real names and network IDs
+import MySQLdb      # for modifying the MediaWiki and Django databases
+import random       # for randomly assigning teams
+import re           # for string matching using regular expressions
+import sys, getopt  # for processing command line arguments
+import yaml         # for reading/writing human-readable input/output files
+
+# import Django modules
+import os
+sys.path += [os.path.abspath('/var/www/django')]
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'CourseDjango.settings')
+import django
+django.setup()
+from CourseDjango.credit.models import Team
+from django.contrib.auth.models import User
+
+# database connection credentials
+sql_user = 'root'
+sql_pass = '<MySQL password>'
+sql_wiki_db   = 'wikidb'
+sql_django_db = 'djangodb'
+
+# defaults and globals
+verbose = False
+dry_run = False
+output_file = 'output-' + datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S') + '.txt'
+default_grading_group = 'Undergrads' # TODO: should determine grading student group (undergad vs. grad vs. all students) from file
+TEAM_UNASSIGNED = 0
+TEAM_INSTRUCTOR = -1
+
+
+
+def usage():
+    print('usage: sudo register-students-and-teams [-o output_file] input_file')
+    print()
+    print('       -h, --help      display this help and exit')
+    print('       -o, --output    specify a name for output file')
+    print('       -v, --verbose   print debugging messages')
+    print('       -d, --dry-run   create an output file but make no database changes')
+
+def say(str = ''):
+    global verbose
+    if verbose:
+        print(str)
+
+def warn(msg):
+    print('warning: ' + str(msg))
+
+
+
+def main(argv = None):
+
+    global verbose, dry_run, output_file
+
+    try:
+
+        #########################
+        # PROCESS OPTS AND ARGS #
+        #########################
+
+        # parse command line options and arguments
+        if argv is None:
+            argv = sys.argv
+        try:
+            opts, args = getopt.gnu_getopt(argv[1:], 'ho:vd', ['help','output=','verbose','dry-run'])
+        except getopt.error, msg:
+            raise UsageError(msg)
+
+        # process options
+        for opt, arg in opts:
+            if opt in ('-h', '--help'):
+                usage()
+                return 0  # exit code
+            elif opt in ('-o', '--output'):
+                output_file = arg
+            elif opt in ('-v', '--verbose'):
+                verbose = True
+            elif opt in ('-d', '--dry-run'):
+                dry_run = True
+            else:
+               raise Error('unhandled option')
+
+        # require that the user is root
+        if os.geteuid() != 0:
+            raise Error("superuser privileges needed (rerun with sudo)")
+
+        if dry_run:
+            say('dry run: will make no database changes')
+        say('output file: ' + str(output_file))
+        say()
+
+        # process arguments
+        if len(args) == 1:
+            input_file = args[0]
+        elif len(args) < 1:
+            raise UsageError('missing argument input_file')
+        elif len(args) > 1:
+            raise UsageError('too many arguments')
+
+
+        ###################
+        # READ INPUT FILE #
+        ###################
+
+        try:
+            with open(input_file, 'r') as file:
+                input = validate_input(yaml.safe_load(file))
+        except IOError, msg:
+            raise Error('cannot open input file "' + str(input_file) + '"')
+        except yaml.parser.ParserError, msg:
+            raise ParsingError(msg)
+        except yaml.scanner.ScannerError, msg:
+            raise ParsingError(msg)
+
+        say('Result of reading input:')
+        say(input)
+        say()
+
+
+        ##########################################
+        # PARSE INPUT AND LOOK UP PERSON DETAILS #
+        ##########################################
+
+        all_users = []
+        teams_defined = []
+
+        for block in input:
+
+            block_title, team_num = validate_block_title(str(block.keys()[0]))
+            block_items = block.values()[0]
+
+            # make sure a team is not defined more than once
+            if team_num > 0:
+                if team_num in teams_defined:
+                    raise Error('team %d is defined more than once' % team_num)
+                else:
+                    teams_defined.append(team_num)
+
+            for person in block_items:
+
+                # if no person details were provided...
+                if type(person) == str:
+                    person_label = person
+                    person_details_from_file = {}
+                # if some person details were provided...
+                elif type(person) == dict and len(person) == 1:
+                    person_label = str(person.keys()[0])
+                    person_details_from_file = person.values()[0]
+                else:
+                    raise Error('bad person specification slipped past validator')
+
+                # look up the individual in the LDAP database
+                person_details_from_ldap = lookup_names_in_ldap(person_label)
+
+                # merge the person details from LDAP and those provided (provided details supersede LDAP)
+                merged_person_details = person_details_from_ldap.copy()
+                merged_person_details.update(person_details_from_file)
+
+                # add person_label and team_num
+                merged_person_details.update({"io_label": person_label, "team_num": team_num})
+
+                # save the person details
+                all_users.append(merged_person_details)
+                say(merged_person_details)
+
+            say()
+
+        # test for duplicate users
+        all_user_ids = [user['uid'] for user in all_users]
+        duplicate_user_ids = list(set([uid for uid in all_user_ids if all_user_ids.count(uid) > 1]))
+        if duplicate_user_ids:
+            raise Error('individuals with the following ids appear in the input more than once (they may possibly have different labels, e.g., "hjc" and "hillel.chiel@case.edu"): ' + str(duplicate_user_ids))
+
+
+        #####################################
+        # FIND TEAMS FOR UNMATCHED STUDENTS #
+        #####################################
+
+        users_needing_a_team = [user for user in all_users if user['team_num'] == TEAM_UNASSIGNED]
+        total_teams_needed = len(teams_defined) + len(users_needing_a_team)/2
+        say('There will need to be a total of ' + str(total_teams_needed) + ' teams')
+        say()
+
+        say('Teams defined in input:')
+        say(sorted(teams_defined))
+        say()
+
+        teams_with_large_nums = [team_num for team_num in teams_defined if team_num > total_teams_needed]
+        if teams_with_large_nums:
+            warn('the following teams have numbers greater than necessary given the size of enrollment (you can manually reduce them and then rerun this script, or ignore this warning): ' + str(teams_with_large_nums))
+            say()
+
+        teams_to_fill = list(set(range(1, total_teams_needed + 1)) - set(teams_defined))[:total_teams_needed-len(teams_defined)]
+        say('The teams to fill are:')
+        say(teams_to_fill)
+        say()
+
+        if len(users_needing_a_team) == 1:
+            raise Error('because there are no other unassigned students to pair him or her with, "' + users_needing_a_team[0]['io_label'] + '" will need to be assigned to a team manually; edit the input directly and then rerun this script')
+            pass
+        elif len(users_needing_a_team) > 1:
+            uids_needing_a_team = [user['uid'] for user in users_needing_a_team]
+            random.shuffle(uids_needing_a_team)
+
+            new_team_assignments = dict(zip(uids_needing_a_team, sorted(2*teams_to_fill) + [max(teams_to_fill)])) # adding max(teams_to_fill) will make the last team a team of three if there are an odd number of unassigned students
+            for i, user in enumerate(all_users):
+                if user['uid'] in new_team_assignments.keys():
+                    user_copy = user.copy()
+                    user_copy['team_num'] = new_team_assignments[user['uid']]
+                    all_users[i] = user_copy
+            say('The new team assignments will be:')
+            say(new_team_assignments)
+            say()
+
+
+        ####################
+        # DUMP OUTPUT FILE #
+        ####################
+
+        # export the team assignments in a form that can be reimported by this script
+        if output_file:
+            dump_output_file(all_users)
+            say('Formatted output written to file')
+            say()
+
+
+        ####################################
+        # REGISTER ACCOUNTS WITH MEDIAWIKI #
+        ####################################
+
+        print()
+        print('*** MediaWiki registration ***')
+        print()
+        # add users to the MediaWiki database and update real names
+        db  = MySQLdb.connect(host='localhost', user=sql_user, passwd=sql_pass, db=sql_wiki_db)
+        cur = db.cursor()
+        try:
+            # query for existing MediaWiki users
+            cur.execute('SELECT user_name FROM user')
+            uids_already_registered = [uid[0] for uid in cur.fetchall()]
+            say('Existing MediaWiki users:')
+            say(uids_already_registered)
+            say()
+
+            say('-- MEDIAWIKI REGISTRATION --')
+            say()
+            for user in all_users:
+                print(user['uid'])
+                uid = user['uid'].capitalize() # MediaWiki user names are capitalized
+                real_name = user['first'] + ' ' + user['last']
+
+                # registration and real name
+                if uid not in uids_already_registered:
+                    print('needs registered')
+                    print('registering with real name "%s"...' % real_name)
+                    if not dry_run:
+                        cur.execute('INSERT INTO user (user_name, user_real_name, user_password, user_newpassword, user_email, user_touched, user_registration)'
+                                    'VALUES("%s", "%s", "", "", "%s@case.edu", DATE_FORMAT(UTC_TIMESTAMP(), "%%Y%%m%%d%%H%%i%%s"), DATE_FORMAT(UTC_TIMESTAMP(), "%%Y%%m%%d%%H%%i%%s"))'
+                                    % (uid, real_name, uid.lower()))
+                else:
+                    print('already registered')
+                    cur.execute('SELECT user_real_name FROM user WHERE user_name = "%s"' % uid)
+                    print('current real name is       "%s"' % cur.fetchall()[0])
+                    print('changing real name to      "%s"...' % real_name)
+                    if not dry_run:
+                        cur.execute('UPDATE user SET user_real_name="%s" WHERE user_name="%s"' % (real_name, uid))
+
+                if user['team_num'] == TEAM_INSTRUCTOR:
+                    print('granting instructor privileges...')
+                    if not dry_run:
+                        cur.execute('INSERT IGNORE INTO user_groups (ug_user, ug_group)'
+                                    'VALUES('
+                                      '(SELECT user_id FROM user WHERE user_name = "%s"),'
+                                      '"bureaucrat")' % uid)
+                        cur.execute('INSERT IGNORE INTO user_groups (ug_user, ug_group)'
+                                    'VALUES('
+                                      '(SELECT user_id FROM user WHERE user_name = "%s"),'
+                                      '"sysop")' % uid)
+                        cur.execute('INSERT IGNORE INTO user_groups (ug_user, ug_group)'
+                                    'VALUES('
+                                      '(SELECT user_id FROM user WHERE user_name = "%s"),'
+                                      '"grader")' % uid)
+                    #### TODO: should also remove instructors from grading system
+                    #### in case they were accidentally marked as students once
+                else:
+                    print('adding student to grading system...')
+                    if not dry_run:
+                        cur.execute('INSERT IGNORE INTO scholasticgrading_groupuser (sggu_group_id, sggu_user_id)'
+                                    'VALUES('
+                                      '(SELECT sgg_id FROM scholasticgrading_group WHERE sgg_title = "%s"),'
+                                      '(SELECT user_id FROM user WHERE user_name = "%s"))' % (default_grading_group, uid))
+                    #### TODO: should determine grading student group (undergad vs. grad vs. all students) from file
+
+                    #### TODO: should also remove any grader privileges from students
+                    #### in case they were accidentally marked as instructors once
+
+                    #### TODO: should also remove unlisted students from grading system
+                print()
+        except MySQLdb.Error, err:
+            try:
+                print('MySQL Error [%d]: %s' % (err.args[0], err.args[1]))
+            except IndexError:
+                print('MySQL Error: %s' % str(err))
+        db.commit()
+
+
+        #################################
+        # REGISTER ACCOUNTS WITH DJANGO #
+        #################################
+
+        print()
+        print()
+        print('*** Django registration ***')
+        print()
+        for user in all_users:
+            print(user['uid'])
+            try:
+                u = User.objects.get(username = user['uid'])
+                print('already registered')
+                print('current real name is       "%s %s"' % (u.first_name, u.last_name))
+                print('changing real name to      "%s %s"...' % (user['first'], user['last']))
+                u.first_name = user['first']
+                u.last_name  = user['last']
+                u.is_active = True
+                if not dry_run:
+                    u.save()
+            except User.DoesNotExist, err:
+                print('needs registered')
+                print('registering with real name "%s %s"...' % (user['first'], user['last']))
+                u = User(username = user['uid'], first_name = user['first'], last_name = user['last'], is_active = True)
+                if not dry_run:
+                    u.save()
+            if user['team_num'] == TEAM_INSTRUCTOR:
+                print('granting instructor privileges...')
+                u.is_staff = True
+                u.is_superuser = True
+                if not dry_run:
+                    u.save()
+            else:
+                print('removing instructor privileges (if necessary)...')
+                u.is_staff = False
+                u.is_superuser = False
+                if not dry_run:
+                    u.save()
+            print()
+
+        print('destroying estisting teams')
+        for team in Team.objects.all():
+            print(team)
+            if not dry_run:
+                team.delete()
+        print()
+        print('creating new teams')
+        team_num_list = set([user['team_num'] for user in all_users if user['team_num'] > 0])
+        for team_num in team_num_list:
+            team = Team(number = team_num, active = True)
+            if not dry_run:
+                team.save()
+                for member in [User.objects.get(username = user['uid']) for user in all_users if user['team_num'] == team_num]:
+                    team.members.add(member)
+                team.save()
+                print(team)
+        print()
+
+
+        #####################
+        # DUMP STUDENT LIST #
+        #####################
+
+        print()
+        print('*** paste the following into the "Student list" wiki page ***')
+        print()
+        print()
+        print('{| class="wikitable sortable" style="text-align:center"')
+        print('|-')
+        print('! Team !! Members')
+        print('|-')
+        print()
+        for team_num in sorted(team_num_list):
+            team_members = [user for user in all_users if user['team_num'] == team_num]
+            print('| rowspan="%d"| %d' % (len(team_members), team_num))
+            for user in sorted(team_members, key = lambda user: user['last']):
+                print('| [[User:%s]]' % user['uid'].capitalize())
+                print('|-')
+            print()
+        print('|}')
+        print()
+
+
+        return 0  # exit code
+
+
+    except Error, err:
+        print("error: " + str(err.msg), file = sys.stderr)
+        return 1  # exit code
+
+    except ParsingError, err:
+        print("parser error: " + str(err.msg), file = sys.stderr)
+        return 1  # exit code
+
+    except UsageError, err:
+        print("error: " + str(err.msg), file = sys.stderr)
+        usage()
+        return 1  # exit code
+
+
+
+# validate the data structures of input
+def validate_input(input):
+
+    if type(input) != list or len(input) < 1:
+        raise ParsingError('the following was expected to be parsed as a non-empty list (did you forget a hyphen?): ' + str(input))
+
+    for block in input:
+
+        if type(block) != dict or len(block) != 1:
+            raise ParsingError('the following was expected to be parsed as a dictionary of length 1 (did you forget a colon?): ' + str(block))
+
+        block_title = str(block.keys()[0])
+        block_items = block.values()[0]
+
+        if type(block_items) != list or len(block_items) < 1:
+            raise ParsingError('the following under heading "' + block_title + '" was expected to be parsed as a non-empty list (did you forget a hyphen?): ' + str(block_items))
+
+        for item in block_items:
+            if type(item) == str:
+                pass
+
+            elif type(item) == dict and len(item) == 1:
+                item_name = str(item.keys()[0])
+                item_properties = item.values()[0]
+                if item_properties is None:
+                    raise ParsingError('if no properties are provided for "' + item_name + '", the trailing colon should be removed')
+                elif type(item_properties) != dict:
+                    raise ParsingError('the following properties provided for "' + item_name + '" were expected to be parsed as a dictionary (did you insert unneeded hyphens in front of the property names?): ' + str(item_properties))
+
+            else:
+                raise ParsingError('the following item under heading "' + block_title + '" was expected to be parsed as a string or dictionary of length 1: ' + str(item))
+
+    return input
+
+
+
+# validate block titles
+# team_num > 0 corresponds to a real team of students
+# team_num == TEAM_UNASSIGNED indicates block 'Needs team'
+# team_num == TEAM_INSTRUCTOR indicates block 'Instructors'
+def validate_block_title(block_title):
+
+    say('Entering block "%s"' % block_title)
+    match = re.match(r'(Team) (\d+)|(Needs team)|(Instructors)', block_title)
+    if not match:
+        raise ParsingError('"%s" is an unrecognized block title; only "Team N" (where N is a positive integer), "Needs team", and "Instructors" are permitted' % block_title)
+    elif match.group(1) == 'Team':
+        team_num = int(match.group(2))
+        if team_num < 1:
+            raise Error('"%s" is not permitted; team numbers must be positive integers' % block_title)
+    elif match.group(3) == 'Needs team':
+        team_num = TEAM_UNASSIGNED
+    elif match.group(4) == 'Instructors':
+        team_num = TEAM_INSTRUCTOR
+    else:
+        raise Error('unhandled block title')
+
+    return block_title, team_num
+
+
+
+# dumped files are designed to be reusable as input files
+def dump_output_file(all_users):
+    if output_file:
+
+        formatted_output = []
+
+        # ---------- TEAM N ----------
+
+        team_num_list = set([user['team_num'] for user in all_users if user['team_num'] > 0])
+        for team_num in sorted(team_num_list):
+
+            # filter by team_num
+            team_members = [user for user in all_users if user['team_num'] == team_num]
+
+            # format using same label as original input and drop some items
+            team_members = [{user['io_label']: {k:v for k,v in user.items() if k not in ('io_label','team_num')}} for user in team_members]
+
+            # sort by last name
+            team_members = sorted(team_members, key = lambda user: user.values()[0]['last'])
+
+            formatted_output.append({'Team ' + str(team_num): team_members})
+
+        # ---------- NEEDS TEAM ----------
+
+        # filter by team_num
+        users_needing_a_team = [user for user in all_users if user['team_num'] == TEAM_UNASSIGNED]
+
+        if users_needing_a_team:
+            raise Error('some users were not placed into a group who should have been')
+
+        # ---------- INSTRUCTORS ----------
+
+        # filter by team_num
+        instructors = [user for user in all_users if user['team_num'] == TEAM_INSTRUCTOR]
+
+        # format using same label as original input and drop some items
+        instructors = [{user['io_label']: {k:v for k,v in user.items() if k not in ('io_label','team_num')}} for user in instructors]
+
+        # sort by uid
+        instructors = sorted(instructors, key = lambda user: user.values()[0]['uid'])
+
+        if instructors:
+            formatted_output.append({'Instructors': instructors})
+
+
+        # write to file
+        try:
+            with open(output_file, 'w') as file:
+                os.chmod(output_file, 0o666) # make sure the output is easily editable even though the script was run as root
+                file.write(yaml.dump(formatted_output, default_flow_style=False))
+        except IOError, msg:
+            raise Error('cannot open output file "' + str(output_file) + '"')
+
+
+
+def ldap_search(searchstr):
+    """Use a search string to fetch a {uid,first,last} dict using LDAP"""
+
+    # login to the LDAP server
+    l = ldap.init('ldap.case.edu')
+    l.simple_bind('anonymous','')
+
+    # look up the user's name by user id
+    res_id = l.search('ou=People,o=cwru.edu,o=isp',
+            ldap.SCOPE_SUBTREE, searchstr)
+    res_t, res_d = l.result(res_id, 1000)
+
+    if len(res_d) > 0:
+        result = {
+                  'uid':   res_d[0][1]['uid'][0],
+                  'first': res_d[0][1]['givenName'][0],
+                  'last':  res_d[0][1]['sn'][0]
+                 }
+    else:
+        result = None
+
+    # log out of the server
+    l.unbind_s()
+
+    return result
+
+
+
+def lookup_names_in_ldap(uid_or_email):
+    """Translate the username or email to a {uid,first,last} dict using LDAP"""
+
+    # the case ldap server seems to throttle complex searches, so try the
+    # several possibilities one at a time.
+    result = ldap_search("(uid={0})".format(uid_or_email))
+
+    if not result:
+        result = ldap_search("(mail={0})".format(uid_or_email))
+    if not result:
+        result = ldap_search("(mailAlternateAddress={0})".format(uid_or_email))
+    if not result:
+        result = ldap_search("(mailEquivalentAddress={0})".format(uid_or_email))
+    if not result:
+        result = ldap_search("(mail={0})".format(
+            uid_or_email.replace('case','cwru')))
+    if not result:
+        result = ldap_search("(mailAlternateAddress={0})".format(
+            uid_or_email.replace('case','cwru')))
+    if not result:
+        result = ldap_search("(mailEquivalentAddress={0})".format(
+            uid_or_email.replace('case','cwru')))
+
+    # if the individual was not found...
+    if not result:
+        raise Error('person "' + uid_or_email + '" not found')
+
+    # if the individual was found...
+    else:
+        return result
+
+
+
+class Error(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+
+class ParsingError(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+
+class UsageError(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+
+
+
+if __name__ == "__main__":
+    sys.exit(main())

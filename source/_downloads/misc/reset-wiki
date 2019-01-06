@@ -1,0 +1,1759 @@
+#!/bin/bash
+
+
+######################################################################
+##                                                                  ##
+## Global variables                                                 ##
+##                                                                  ##
+######################################################################
+
+# The user name and, optionally, the password of a wiki account that
+# will be used to interact with the wiki through the MediaWiki API.
+# User names and passwords are case-sensitive. If the password is left
+# blank here, you will be prompted for it when it is needed.
+
+BOTNAME=SemesterResetBot
+BOTPASS=
+
+# The names of the MediaWiki and Django databases and, optionally, the
+# MySQL password. If the password is left blank here, you will be
+# prompted for it when it is needed.
+
+WIKIDB=wikidb
+DJANGODB=djangodb
+SQLUSER=root
+SQLPASS=
+
+# The user names of wiki accounts that should be ignored by this
+# script. The following will be preserved for accounts in this list:
+# MediaWiki and Django accounts, files uploaded, User and Private
+# pages. If you have a TA from last semester who is continuing to work
+# with you in the upcoming semester, you can include them here so that
+# you do not need to re-setup their account privileges. User names are
+# case-sensitive and should be separated with spaces.
+
+IGNOREUSERS="Hjc Jpg18"
+
+# The titles of pages that should be ignored by this script. User and
+# Private pages of accounts in the IGNOREUSERS list are automatically
+# preserved, as are all pages outside of the User, User talk, Private,
+# and Private talk namespaces. Use this variable to preserve important
+# pages in these namespaces. Page titles are case-sensitive. Spaces in
+# titles should be replaced with underscores, and titles should be
+# separated by spaces.
+
+IGNOREPAGES="Private:Term_papers"
+
+# The user names of wiki accounts that will be used for merging old
+# accounts. User names are case-sensitive.
+
+MERGEDSTUDENTNAME=FormerStudent
+MERGEDINSTRUCNAME=FormerInstructor
+
+# MediaWiki provides an API for querying the server. We will use it
+# to log into the bot account.
+
+WIKIAPI="https://$(hostname).case.edu/w/api.php"
+
+# Since the UserMerge extension lacks an API, to use it we must
+# simulate human actions through a browser using the normal access
+# point used by human visitors to the wiki.
+
+WIKIINDEX="https://$(hostname).case.edu/w/index.php"
+
+# Maintaining a login session requires that we store an HTTP cookie
+# file.
+
+COOKIE="/tmp/cookie.txt"
+
+# MediaWiki namespace constants
+
+NS_TALK=1
+NS_USER=2
+NS_USER_TALK=3
+NS_PRIVATE=100
+NS_PRIVATE_TALK=101
+
+# The functions below set and use the following additional global
+# variables
+
+BOTISLOGGEDIN=false
+EDITTOKEN=
+USERRIGHTSTOKEN=
+
+
+######################################################################
+##                                                                  ##
+## Logging                                                          ##
+##                                                                  ##
+######################################################################
+
+# Create a log directory if it does not exist.
+
+LOGDIR="/var/log/reset-wiki"
+mkdir -p $LOGDIR
+
+# Log files are dated.
+
+LOGFULLPATH="$LOGDIR/reset-wiki-$(date +'%Y-%m-%d-%H%M%S').log"
+
+# Redirect stdout ( > ) into a named pipe ( >() ) running tee, which
+# allows text printed to the screen to also be written to a file.
+
+exec > >(tee -i "$LOGFULLPATH")
+
+# Also redirect stderr ( 2> ) to stdout ( &1 ) so that it too is
+# printed to the screen and written to the file.
+
+exec 2>&1
+
+
+######################################################################
+##                                                                  ##
+## Function: userexists                                             ##
+##                                                                  ##
+## Checks whether a user account exists on the wiki. Returns 0 if   ##
+## it exists or 1 otherwise. Prompts for the account name if one    ##
+## was not provided as an argument when the function was called.    ##
+##                                                                  ##
+######################################################################
+
+function userexists {
+
+    local USER=$1
+    local RESPONSE
+    local MISSING
+    local USERID
+
+
+    # If the name of account is not passed as a function argument, ask
+    # for it now.
+
+    if [ -z "$USER" ]; then
+
+        read -r -p "User name (to check for existence): " USER
+
+        if [ -z "$USER" ]; then
+            echo >&2 "User existence check aborted: You must enter a username"
+            return 1
+        fi
+    fi
+
+
+    # Request basic information about the account.
+
+    RESPONSE=$(curl -s $WIKIAPI \
+        -d "action=query" \
+        -d "format=json" \
+        -d "list=users" \
+        -d "ususers=$USER")
+
+    MISSING=$(echo $RESPONSE | jq '.query.users[0].missing')
+    USERID=$( echo $RESPONSE | jq '.query.users[0].userid')
+
+    if [ "$MISSING" == null -a "$USERID" != null ]; then
+
+        # User exists, so return true (0)
+
+        return 0
+
+    else
+
+        # User is missing, so return false (1)
+
+        return 1
+
+    fi
+
+} # end userexists
+
+
+######################################################################
+##                                                                  ##
+## Function: usergroups                                             ##
+##                                                                  ##
+## Prints out the list of groups to which a user on the wiki        ##
+## belongs. The result will be in the form of a JSON array of       ##
+## strings if the user exists, or "null" otherwise. Prompts for the ##
+## account name if one was not provided as an argument when the     ##
+## function was called.                                             ##
+##                                                                  ##
+######################################################################
+
+function usergroups {
+
+    local USER=$1
+    local RESPONSE
+    local USERGROUPS
+
+
+    # If the name of account is not passed as a function argument, ask
+    # for it now.
+
+    if [ -z "$USER" ]; then
+
+        read -r -p "User name (to check for groups): " USER
+
+        if [ -z "$USER" ]; then
+            echo >&2 "User group check aborted: You must enter a username"
+            return 1
+        fi
+    fi
+
+
+    # Request group information about the account.
+
+    RESPONSE=$(curl -s $WIKIAPI \
+        -d "action=query" \
+        -d "format=json" \
+        -d "list=users" \
+        -d "ususers=$USER" \
+        -d "usprop=groups")
+
+    USERGROUPS=$(echo $RESPONSE | jq '.query.users[0].groups')
+
+    echo $USERGROUPS
+
+} # end usergroups
+
+
+######################################################################
+##                                                                  ##
+## Function: loginbot                                               ##
+##                                                                  ##
+## Logs the bot into the wiki so that it can perform automated      ##
+## tasks. Prompts for the bot account password if one was not       ##
+## provided as an argument when the function was called. If         ##
+## successful, the function saves an HTTP cookie associated with    ##
+## the login session and updates the BOTISLOGGEDIN global variable. ##
+##                                                                  ##
+######################################################################
+
+function loginbot {
+
+    local BOTPASS=$1
+    local RESPONSE
+    local LOGINTOKEN
+    local LOGINSTATUS
+    local WARNING
+    local ERROR
+
+
+    # If the bot account password is not passed as a function
+    # argument, ask for it now.
+
+    if [ -z "$BOTPASS" ]; then
+        read -s -r -p "Enter $BOTNAME's password: " BOTPASS
+        echo
+        echo
+    fi
+
+
+    # Delete any old cookie files.
+
+    rm -f "$COOKIE"
+
+
+    # Logging into the wiki is a two-step process. This first step
+    # should result in the receipt of an HTTP cookie (saved to a file
+    # using -c) and a login token (a random string) that is paired to
+    # the cookie.
+
+    RESPONSE=$(curl -s -c "$COOKIE" $WIKIAPI \
+        -d "action=query" \
+        -d "meta=tokens" \
+        -d "type=login" \
+        -d "format=json")
+
+    LOGINTOKEN=$(echo $RESPONSE | jq '.query.tokens.logintoken | @uri' | tr -d '"')
+
+    if [ "$LOGINTOKEN" == "null" ]; then
+        WARNING=$(echo $RESPONSE | jq '.warnings.tokens | .["*"]' | tr -d '"')
+        echo >&2 "Login token retrieval failed: $WARNING"
+        return 1
+    fi
+
+    # The second step for logging in submits the cookie (submitted
+    # from a file using -b) and login token, along with the username
+    # and password, and should result in the receipt of a modified
+    # HTTP cookie (saved to the same file using -c). A valid return
+    # URL is required to log in but is not used by this script.
+
+    RESPONSE=$(curl -s -b "$COOKIE" -c "$COOKIE" $WIKIAPI \
+        -d "action=clientlogin" \
+        -d "format=json" \
+        -d "username=$BOTNAME" \
+        -d "password=$BOTPASS" \
+        -d "loginreturnurl=http://localhost" \
+        -d "logintoken=$LOGINTOKEN")
+
+    LOGINSTATUS=$(echo $RESPONSE | jq '.clientlogin.status' | tr -d '"')
+
+    if [ "$LOGINSTATUS" == "FAIL" ]; then
+        ERROR=$(echo $RESPONSE | jq '.clientlogin.message' | tr -d '"')
+        echo >&2 "Login failed: $ERROR"
+        return 1
+    fi
+
+    if [ "$LOGINSTATUS" == "PASS" ]; then
+        echo "Login successful."
+        BOTISLOGGEDIN=true
+        return 0
+    else
+        echo >&2 "Login failed: Result was expected to be 'PASS' but got '$LOGINSTATUS' instead"
+        BOTISLOGGEDIN=false
+        return 1
+    fi
+
+} # end loginbot
+
+
+######################################################################
+##                                                                  ##
+## Function: createandpromoteaccount                                ##
+##                                                                  ##
+## Creates a new account on the wiki. Requires that the username of ##
+## the new account is passed as the first argument when the         ##
+## function is called. Prompts for a password. Can optionally       ##
+## accept any of the following flags for promoting the account to a ##
+## user group: --bot --bureaucrat --sysop                           ##
+##                                                                  ##
+######################################################################
+
+function createandpromoteaccount {
+
+    local NEWUSER=$1
+    local FLAGS=${@:2} # all args after the first
+    local NEWPASS1=
+    local NEWPASS2=
+
+
+    # Ask for a password
+
+    read -s -r -p "Choose a password for $NEWUSER (min 8 chars): " NEWPASS1
+    echo
+    read -s -r -p "Retype the password: " NEWPASS2
+    echo
+    echo
+
+    until [ "$NEWPASS1" == "$NEWPASS2" -a "${#NEWPASS1}" -ge "8" ]; do
+        echo "Passwords did not match or are too short, try again."
+        echo
+        retryprompt
+        read -s -r -p "Choose a password for $NEWUSER (min 8 chars): " NEWPASS1
+        echo
+        read -s -r -p "Retype the password: " NEWPASS2
+        echo
+        echo
+    done
+
+
+    # Actually create the account and promote it to the appropriate
+    # user groups
+
+    php /var/www/mediawiki/maintenance/createAndPromote.php --force $FLAGS "$NEWUSER" "$NEWPASS1"
+
+} # end createandpromoteaccount
+
+
+######################################################################
+##                                                                  ##
+## Function: getedittoken                                           ##
+##                                                                  ##
+## Requests an edit token from the wiki. Edit tokens are random     ##
+## strings of letters and numbers needed to take most actions on    ##
+## the wiki, including merging users. Stores the edit token in the  ##
+## global variable EDITTOKEN.                                       ##
+##                                                                  ##
+######################################################################
+
+function getedittoken {
+
+    local RESPONSE
+    local WARNING
+
+
+    # Request the edit token.
+
+    RESPONSE=$(curl -s -b "$COOKIE" -c "$COOKIE" $WIKIAPI \
+        -d "action=tokens" \
+        -d "format=json")
+
+    if [ "$(echo $RESPONSE | jq '.tokens')" == "[]" ]; then
+        WARNING=$(echo $RESPONSE | jq '.warnings.tokens | .["*"]' | tr -d '"')
+        echo >&2 "Edit token retrieval failed: $WARNING"
+        return 1
+    fi
+
+    EDITTOKEN=$(echo $RESPONSE | jq '.tokens.edittoken | @uri' | tr -d '"')
+    return 0
+
+} # end getedittoken
+
+
+######################################################################
+##                                                                  ##
+## Function: getuserrightstoken                                     ##
+##                                                                  ##
+## Requests a userrights token from the wiki. Userrights tokens are ##
+## random strings of letters and numbers needed to make changes to  ##
+## user properties, such as group membership. Stores the userrights ##
+## token in the global variable USERRIGHTSTOKEN.                    ##
+##                                                                  ##
+######################################################################
+
+function getuserrightstoken {
+
+    local RESPONSE
+    local WARNING
+
+
+    # Request the userrights token.
+
+    RESPONSE=$(curl -s -b "$COOKIE" -c "$COOKIE" $WIKIAPI \
+        -d "action=query" \
+        -d "meta=tokens" \
+        -d "type=userrights" \
+        -d "format=json")
+
+    USERRIGHTSTOKEN=$(echo $RESPONSE | jq '.query.tokens.userrightstoken | @uri' | tr -d '"')
+
+    if [ "$USERRIGHTSTOKEN" == "null" ]; then
+        WARNING=$(echo $RESPONSE | jq '.warnings.tokens | .["*"]' | tr -d '"')
+        echo >&2 "Userrights token retrieval failed: $WARNING"
+        return 1
+    fi
+
+    return 0
+
+} # end getuserrightstoken
+
+
+######################################################################
+##                                                                  ##
+## Function: demotesysop                                            ##
+##                                                                  ##
+## Removes a wiki user from the sysop group. Requires that the bot  ##
+## is already logged in and an edit token is already acquired, so   ##
+## run the loginbot and getedittoken functions first. Prompts for   ##
+## the username of the account to be demoted if one was not         ##
+## provided as an argument when the function was called.            ##
+##                                                                  ##
+######################################################################
+
+function demotesysop {
+
+    local USER=$1
+    local RESPONSE
+    local BOTISBUREAUCRAT
+
+
+    # If the name of the sysop account to be demoted is not passed as
+    # a function argument, ask for it now.
+
+    if [ -z "$USER" ]; then
+
+        read -r -p "User name (to demote): " USER
+
+        if [ -z "$USER" ]; then
+            echo >&2 "Demote sysop aborted: You must enter a username"
+            return 1
+        fi
+    fi
+
+
+    # Verify that the bot can edit user rights.
+
+    BOTISBUREAUCRAT=$(usergroups $BOTNAME | jq '. | contains(["bureaucrat"])')
+
+    if [ "$BOTISBUREAUCRAT" != "true" ]; then
+        echo >&2 "Demote sysop aborted: Bot must be added to the bureaucrat group"
+        return 1
+    fi
+
+
+    # Get a userrights token.
+
+    until getuserrightstoken; do
+        echo
+        retryprompt
+    done
+
+
+    # Request the demotion.
+
+    RESPONSE=$(curl -s -b "$COOKIE" -c "$COOKIE" $WIKIAPI \
+        -d "action=userrights" \
+        -d "format=json" \
+        -d "user=$USER" \
+        -d "remove=sysop" \
+        -d "token=$USERRIGHTSTOKEN")
+
+    if [ "$(echo $RESPONSE | jq '.userrights.removed[]' | tr -d '"')" == "sysop" ]; then
+        return 0
+    else
+        echo >&2 "Demote sysop failed: User may have already been demoted"
+        return 1
+    fi
+
+} # end demotesysop
+
+
+######################################################################
+##                                                                  ##
+## Function: usermerge                                              ##
+##                                                                  ##
+## Merges one wiki account ("old") into another ("new") and deletes ##
+## the former. All contributions belonging to the old account       ##
+## (edits, uploads) are reassigned to the new account. The logs are ##
+## revised as well. Depends on the UserMerge MediaWiki extension.   ##
+## Requires that the bot is already logged in and an edit token is  ##
+## already acquired, so run the loginbot and getedittoken functions ##
+## first. Sysop users cannot be merged into another account, so use ##
+## demotesysop first if necessary. User names of the old and new    ##
+## accounts can be passed as the first and second function          ##
+## arguments, respectively. If either argument is missing, the      ##
+## function will prompt for the user names. User names are          ##
+## case-sensitive.                                                  ##
+##                                                                  ##
+######################################################################
+
+function usermerge {
+
+    local OLDUSER=$1
+    local NEWUSER=$2
+    local RESPONSE
+    local ERROR
+    local SUCCESS
+    local OUTPUT="/tmp/response.html"
+
+
+    # If either the old or new user was not passed as a function
+    # argument, ask for both now.
+
+    if [ -z "$OLDUSER" -o -z "$NEWUSER" ]; then
+
+        read -r -p "Old user (merge from): " OLDUSER
+
+        if [ -z "$OLDUSER" ]; then
+            echo >&2 "User merge aborted: You must enter a username"
+            return 1
+        fi
+
+        read -r -p "New user (merge to): " NEWUSER
+
+        if [ -z "$NEWUSER" ]; then
+            echo >&2 "User merge aborted: You must enter a username"
+            return 1
+        fi
+    fi
+
+
+    # Request to merge users.
+
+    RESPONSE=$(curl -s -b "$COOKIE" -c "$COOKIE" $WIKIINDEX \
+        -d "title=Special:UserMerge" \
+        -d "wpolduser=$OLDUSER" \
+        -d "wpnewuser=$NEWUSER" \
+        -d "wpdelete=1" \
+        -d "wpEditToken=$EDITTOKEN")
+
+    # Attempt to detect any error messages in the response.
+
+    ERROR=$(echo $RESPONSE | sed -n -e "s/.*\(<span class=\"error\">\)\s*\([^<>]*\)\s*\(<\/span>\).*/\2/ p")
+
+    if [ -n "$ERROR" ]; then
+        echo >&2 "User merge aborted: $ERROR"
+        return 1
+    fi
+
+    # Attempt to detect a success message in the response.
+
+    SUCCESS=$(echo $RESPONSE | sed -n -e "s/.*\(Merge from [^<>]* is complete\.\).*/\1/ p")
+
+    if [ -n "$SUCCESS" ]; then
+        echo "Success: $SUCCESS"
+        return 0
+    fi
+
+    # The function would have returned by now if either the error or
+    # success pattern matching steps had found something.
+
+    echo $RESPONSE > $OUTPUT
+    echo >&2 "User merge aborted: The server responded in an unexpected way."
+    echo >&2 "I've saved the response in $OUTPUT if you'd like to inspect it."
+    return 1
+
+} # end usermerge
+
+
+######################################################################
+##                                                                  ##
+## Function: validatesqlpass                                        ##
+##                                                                  ##
+## The first time this function is executed, it will prompt for the ##
+## MySQL password if none was provided at the top of this file (it  ##
+## is recommended that this file is kept free of passwords for      ##
+## improved security). It then tests the password. This repeats if  ##
+## the password was incorrect until a correct password is given or  ##
+## the user aborts. If this function is executed again later after  ##
+## the correct password was obtained, it will silently double check ##
+## that the password is still working and return.                   ##
+##                                                                  ##
+######################################################################
+
+function validatesqlpass {
+
+    # If the password is not provided at the top of this file
+    # (it is recommended that this file is kept free of passwords for
+    # improved security) and this function has not been executed
+    # already, prompt for the password now.
+
+    if [ -z "$SQLPASS" ]; then
+
+        read -s -r -p "Enter the MySQL password: " SQLPASS
+        echo
+        echo
+
+
+    # If the password was provided at the top of this file, or if it
+    # was acquired when this function was previously executed, test
+    # the password, and if it works, return.
+
+    elif $(echo "" | mysql --user=$SQLUSER --password=$SQLPASS >/dev/null 2>&1); then
+
+        return 0
+
+    fi
+
+
+    # No password or an incorrect password was provided at the top of
+    # this file, and this function has not been executed previously to
+    # obtain the correct password, so enter this loop.
+
+    while true; do
+
+        # Check again whether the password works.
+
+        if $(echo "" | mysql --user=$SQLUSER --password=$SQLPASS >/dev/null 2>&1); then
+
+            # If it works this time, provide feedback to the user and
+            # return.
+
+            echo "The MySQL password you entered is correct."
+            echo
+            return 0
+
+        else
+
+            # If it does not work this time, provide feedback to the
+            # user and ask again.
+
+            echo "The MySQL password you entered is incorrect."
+            echo
+            retryprompt
+            read -s -r -p "Enter the MySQL password: " SQLPASS
+            echo
+            echo
+
+        fi
+
+    done
+
+} # end validatesqlpass
+
+
+######################################################################
+##                                                                  ##
+## Function: querywikidb                                            ##
+##                                                                  ##
+## Submits a MySQL query to the MediaWiki database. validatesqlpass ##
+## should be executed at least once before submitting a query.      ##
+##                                                                  ##
+######################################################################
+
+function querywikidb {
+
+    local QUERY=$1
+
+
+    # Submit the query and suppress a warning about using passwords on
+    # the command line.
+
+    echo "$QUERY" | mysql --user=$SQLUSER --password=$SQLPASS -N $WIKIDB 2>&1 | grep -v "\[Warning\] Using a password"
+
+} # end querywikidb
+
+
+######################################################################
+##                                                                  ##
+## Function: querydjangodb                                          ##
+##                                                                  ##
+## Submits a MySQL query to the Django database. validatesqlpass    ##
+## should be executed at least once before submitting a query.      ##
+##                                                                  ##
+######################################################################
+
+function querydjangodb {
+
+    local QUERY=$1
+
+
+    # Submit the query and suppress a warning about using passwords on
+    # the command line.
+
+    echo "$QUERY" | mysql --user=$SQLUSER --password=$SQLPASS -N $DJANGODB 2>&1 | grep -v "\[Warning\] Using a password"
+
+} # end querydjangodb
+
+
+######################################################################
+##                                                                  ##
+## Function: listnonsysops                                          ##
+##                                                                  ##
+## Prints out a list of all users on the wiki who are not           ##
+## admins/sysops (usually students or recently demoted TAs).        ##
+## Usernames provided as arguments to the function will be filtered ##
+## out of the list.                                                 ##
+##                                                                  ##
+######################################################################
+
+function listnonsysops {
+
+    local EXCLUSIONS
+
+
+    # Create a regular expression that matches any user names that
+    # were passed as arguments to this function call.
+
+    EXCLUSIONS="^($(echo $* | tr -s ' ' '|'))$"
+
+
+    # Query for all users who are not members of the sysop group and
+    # who are not among the excluded user name list.
+
+    querywikidb "SELECT user_name FROM user WHERE user_id NOT IN (SELECT ug_user FROM user_groups WHERE ug_group = 'sysop') AND user_name NOT REGEXP '$EXCLUSIONS';"
+
+} # end listnonsysops
+
+
+######################################################################
+##                                                                  ##
+## Function: listsysops                                             ##
+##                                                                  ##
+## Prints out a list of all users on the wiki who are admins/sysops ##
+## (instructors and the bot account). Usernames provided as         ##
+## arguments to the function will be filtered out of the list.      ##
+##                                                                  ##
+######################################################################
+
+function listsysops {
+
+    local EXCLUSIONS
+
+
+    # Create a regular expression that matches any user names that
+    # were passed as arguments to this function call.
+
+    EXCLUSIONS="^($(echo $* | tr -s ' ' '|'))$"
+
+
+    # Query for all users who are members of the sysop group and who
+    # are not among the excluded user name list.
+
+    querywikidb "SELECT user_name FROM user WHERE user_id IN (SELECT ug_user FROM user_groups WHERE ug_group = 'sysop') AND user_name NOT REGEXP '$EXCLUSIONS';"
+
+} # end listsysops
+
+
+######################################################################
+##                                                                  ##
+## Function: listpages                                              ##
+##                                                                  ##
+## Prints out a list of all pages from specified namespaces.        ##
+## Prompts for one or more namespace constants (integers separated  ##
+## by spaces) if one was not provided as an argument when the       ##
+## function was called.                                             ##
+##                                                                  ##
+######################################################################
+
+function listpages {
+
+    local NS_CONSTANTS="$*"
+
+
+    # If namespace constants are not passed as function arguments, ask
+    # for them now.
+
+    if [ -z "$NS_CONSTANTS" ]; then
+
+        read -r -p "Namespace constants (integers separated by spaces): " NS_CONSTANTS
+
+        if [ -z "$NS_CONSTANTS" ]; then
+            echo >&2 "List pages aborted: You must enter one or more namespace constants"
+            return 1
+        fi
+    fi
+
+
+    # Query for all pages in the specified namespaces
+
+    for NS in $NS_CONSTANTS; do
+
+        if [ $NS == $NS_TALK ]; then
+            NSTITLE="Talk"
+        elif [ $NS == $NS_USER ]; then
+            NSTITLE="User"
+        elif [ $NS == $NS_USER_TALK ]; then
+            NSTITLE="User talk"
+        elif [ $NS == $NS_PRIVATE ]; then
+            NSTITLE="Private"
+        elif [ $NS == $NS_PRIVATE_TALK ]; then
+            NSTITLE="Private talk"
+        else
+            NSTITLE="UNKNOWNNAMESPACE"
+        fi
+
+        querywikidb "SELECT CONCAT('$NSTITLE:', page_title) FROM page WHERE page_namespace=$NS;"
+
+    done
+
+} # end listpages
+
+
+######################################################################
+##                                                                  ##
+## Function: listfiles                                              ##
+##                                                                  ##
+## Prints out a list of all files uploaded to the wiki. Usernames   ##
+## provided as arguments to the function will have their uploaded   ##
+## files be filtered out of the list.                               ##
+##                                                                  ##
+######################################################################
+
+function listfiles {
+
+    local EXCLUSIONS
+
+
+    # If any user names were passed as arguments with this function
+    # call, construct a MySQL phrase that will exclude their uploaded
+    # files from the query
+
+    if [ -n "$*" ]; then
+        EXCLUSIONS=$(echo "$*" | tr -s ' ' '|')
+        EXCLUSIONS="WHERE img_user NOT IN (SELECT user_id FROM user WHERE user_name REGEXP '$EXCLUSIONS')"
+    else
+        EXCLUSIONS=""
+    fi
+
+
+    # Query for all files uploaded by anyone not on the excluded user
+    # list
+
+    querywikidb "SELECT CONCAT('File:', img_name) FROM image $EXCLUSIONS;"
+
+} # end listfiles
+
+
+######################################################################
+##                                                                  ##
+## Function: deletepageorfile                                       ##
+##                                                                  ##
+## Deletes a wiki page or uploaded file. Requires that the bot is   ##
+## already logged in and an edit token is already acquired, so run  ##
+## the loginbot and getedittoken functions first. Prompts for the   ##
+## page or file title if one was not provided as an argument when   ##
+## the function was called. For pages in namespaces other than      ##
+## Main, include the namespace prefix. For files, include "File:".  ##
+##                                                                  ##
+######################################################################
+
+function deletepageorfile {
+
+    local TITLE=$1
+    local TITLEESCAPED
+    local RESPONSE
+
+
+    # If the page title is not passed as a function argument, ask for
+    # it now.
+
+    if [ -z "$TITLE" ]; then
+
+        read -r -p "Page/file title (to delete): " TITLE
+
+        if [ -z "$TITLE" ]; then
+            echo >&2 "Page/file delete aborted: You must enter a page or file title"
+            return 1
+        fi
+    fi
+
+
+    # Replace underscores in the title with spaces
+
+    TITLE=$(echo $TITLE | tr '_' ' ')
+
+
+    # Create a safe-for-URL version of the title with escaped special
+    # characters
+
+    TITLEESCAPED=$(echo "{\"title\":\"$TITLE\"}" | jq '.title | @uri' | tr -d '"')
+
+
+    # Request the deletion.
+
+    RESPONSE=$(curl -s -b "$COOKIE" -c "$COOKIE" $WIKIAPI \
+        -d "action=delete" \
+        -d "format=json" \
+        -d "title=$TITLEESCAPED" \
+        -d "token=$EDITTOKEN" \
+        -d "reason=Mass deletion of former student content")
+
+    if [ "$(echo $RESPONSE | jq '.delete.title' | tr -d '"')" == "$TITLE" ]; then
+        echo "Successful deletion: $TITLE"
+        return 0
+    else
+        echo >&2 "Failed: $TITLE NOT deleted: $RESPONSE"
+        return 1
+    fi
+
+} # end deletepageorfile
+
+
+######################################################################
+##                                                                  ##
+## Function: continueprompt                                         ##
+##                                                                  ##
+## Asks the user if they want to continue with the script. Aborts   ##
+## if they press any key other than 'c'.                            ##
+##                                                                  ##
+######################################################################
+
+function continueprompt {
+
+    local PROMPT
+
+    read -r -n 1 -p "Press 'c' to continue, or any other key to quit: " PROMPT
+    echo
+    if [ "$PROMPT" != "c" ]; then
+        exit 0
+    else
+        echo
+    fi
+
+} # end continueprompt
+
+
+######################################################################
+##                                                                  ##
+## Function: retryprompt                                            ##
+##                                                                  ##
+## Asks the user if they want to retry some action that failed.     ##
+## Aborts if they press any key other than 'r'.                     ##
+##                                                                  ##
+######################################################################
+
+function retryprompt {
+
+    local PROMPT
+
+    read -r -n 1 -p "Press 'r' to retry, or any other key to quit: " PROMPT
+    echo
+    if [ "$PROMPT" != "r" ]; then
+        exit 0
+    else
+        echo
+    fi
+
+} # end retryprompt
+
+
+######################################################################
+##                                                                  ##
+## Main: Functions are actually called here                         ##
+##                                                                  ##
+######################################################################
+
+
+# Since this script is very powerful, require sudo
+
+if [ "$(whoami)" != "root" ]; then
+    echo >&2 "Aborted: superuser priveleges needed (rerun with sudo)"
+    exit 1
+fi
+
+
+# Acquire the MySQL password
+
+validatesqlpass
+
+
+echo "\
+This script can be used to clean up the wiki in preparation for a new
+semester. It will *irreversibly* remove all student content, including
+lab notebooks, term papers, files uploaded by students, grades (but
+not assignments), survey responses (but not surveys), and all related
+log entries.
+
+       *******************************************************
+       **  BEFORE PROCEEDING, YOU SHOULD CLONE THE VIRTUAL  **
+       **     MACHINE TO PRESERVE LAST SEMESTER'S DATA!     **
+       *******************************************************
+
+This script will perform the following actions:
+
+    1.  Log into the wiki using a bot account. The bot will perform
+        many of the operations on the wiki.
+
+    2.  Merge all student accounts into the \"$MERGEDSTUDENTNAME\" account.
+
+    3.  Merge the accounts of all former TAs into the
+        \"$MERGEDINSTRUCNAME\" account.
+
+    4.  Reversibly delete pages in the following namespaces:
+            - User & Private            (lab notebooks and term papers)
+            - User talk & Private talk  (comments on student work)
+
+    5.  Reversibly delete files uploaded by students.
+
+    6.  Permanently delete the pages, files, and related log entries.
+
+    7.  Delete grades.
+
+    8.  Clean up wiki logs.
+
+    9.  Delete survey responses.
+
+You will be prompted at every step for permission to continue.
+
+All output from this script will be recorded in the file
+$LOGFULLPATH.
+"
+continueprompt
+
+
+echo "\
+**********************************************************************
+**               STEP 1: LOG INTO THE BOT ACCOUNT                   **
+**********************************************************************
+"
+
+# Ensure that the bot account exists
+
+until userexists "$BOTNAME"; do
+    echo "\
+The bot account, $BOTNAME, does not exist on the wiki. This
+script will create it now. The account will also be promoted to the
+bot, bureaucrat, and administrator (sysop) groups.
+"
+    continueprompt
+    until createandpromoteaccount "$BOTNAME" --bot --bureaucrat --sysop; do
+        echo
+        retryprompt
+    done
+    echo
+done
+
+
+# Ensure that the bot account has the correct privileges, in case it
+# was manually demoted
+
+until $(usergroups $BOTNAME | jq '. | contains(["bot", "bureaucrat", "sysop"])') == "true"; do
+    echo "\
+The bot account must belong to specific user groups so that it can
+have necessary privileges. This script will promote it now to the bot,
+bureaucrat, and administrator (sysop) groups. You will be asked to
+select a new password for the account. You may reuse the existing
+password if you like.
+"
+    continueprompt
+    until createandpromoteaccount "$BOTNAME" --bot --bureaucrat --sysop; do
+        echo
+        retryprompt
+    done
+    echo
+done
+
+
+# Log into the account
+
+if [ -n "$BOTPASS" ]; then
+    echo "Attempting bot login using password stored in this script ..."
+    echo
+    loginbot "$BOTPASS"
+else
+    loginbot
+fi
+
+until $BOTISLOGGEDIN; do
+    echo
+    retryprompt
+    loginbot
+done
+echo
+continueprompt
+
+
+echo "\
+**********************************************************************
+**                 STEP 2: MERGE FORMER STUDENTS                    **
+**********************************************************************
+"
+
+# Ensure that the account for merging students exists
+
+until userexists "$MERGEDSTUDENTNAME"; do
+    echo "\
+The account that will be used to merge students, $MERGEDSTUDENTNAME, does
+not exist on the wiki. This script will create it now.
+"
+    continueprompt
+    until createandpromoteaccount "$MERGEDSTUDENTNAME"; do
+        echo
+        retryprompt
+    done
+    echo
+done
+
+
+# Acquire the list of former students
+
+USERLIST=$(listnonsysops $IGNOREUSERS $BOTNAME $MERGEDSTUDENTNAME $MERGEDINSTRUCNAME)
+USERCOUNT=$(echo "$USERLIST" | wc -l)
+
+
+if [ -n "$USERLIST" ]; then
+
+    echo "\
+The following non-administrator accounts are assumed to be either
+students from last semester or accounts of random people who once
+logged into the wiki. These will be merged into the $MERGEDSTUDENTNAME
+account, and anything they ever did on the wiki will be destroyed in a
+later step. The merging process will delete the original accounts.
+"
+    OLDIFS=$IFS; IFS=$'\n' # tell for-loop to delimit usernames by line breaks, not spaces
+    for USER in $USERLIST; do
+        REALNAME=$(querywikidb "SELECT user_real_name FROM user WHERE user_name='$USER';")
+        echo -e "$USER \t($REALNAME)"
+    done
+    IFS=$OLDIFS
+    echo
+
+    echo "\
+Look over the list carefully. Continue only if everything looks right
+to you. If an account appears here that you do not want merged, you
+may edit this script and add the user name to the IGNOREUSERS global
+variable at the top of the file.
+
+Merging accounts can take a long time, so please be patient. You can
+press Ctrl+c to abort this script at any time.
+"
+    continueprompt
+    until getedittoken; do
+        echo
+        retryprompt
+    done
+    ITER=1
+    OLDIFS=$IFS; IFS=$'\n' # tell for-loop to delimit usernames by line breaks, not spaces
+    for USER in $USERLIST; do
+        echo -n "[$ITER/$USERCOUNT] "
+        until usermerge "$USER" "$MERGEDSTUDENTNAME"; do
+            echo
+            retryprompt
+        done
+        let ITER++
+    done
+    IFS=$OLDIFS
+    echo
+
+    echo "\
+Merging of former student accounts complete.
+"
+
+else
+
+    echo "\
+All former student accounts have already been merged and deleted.
+"
+
+fi
+continueprompt
+
+
+echo "\
+**********************************************************************
+**                STEP 3: MERGE FORMER INSTRUCTORS                  **
+**********************************************************************
+"
+
+# Ensure that the account for merging instructors exists
+
+until userexists "$MERGEDINSTRUCNAME"; do
+    echo "\
+The account that will be used to merge instructors, $MERGEDINSTRUCNAME,
+does not exist on the wiki. This script will create it now.
+"
+    continueprompt
+    until createandpromoteaccount "$MERGEDINSTRUCNAME"; do
+        echo
+        retryprompt
+    done
+    echo
+done
+
+
+# Acquire the list of former instructors
+
+USERLIST=$(listsysops $IGNOREUSERS $BOTNAME $MERGEDSTUDENTNAME $MERGEDINSTRUCNAME)
+USERCOUNT=$(echo "$USERLIST" | wc -l)
+
+
+if [ -n "$USERLIST" ]; then
+
+    echo "\
+The following administrator accounts are assumed to be TAs from last
+semester. These will be merged into the $MERGEDINSTRUCNAME account.
+Their contributions to the wiki will be preserved under the merged
+account. The merging process will delete the original accounts.
+"
+    OLDIFS=$IFS; IFS=$'\n' # tell for-loop to delimit usernames by line breaks, not spaces
+    for USER in $USERLIST; do
+        REALNAME=$(querywikidb "SELECT user_real_name FROM user WHERE user_name='$USER';")
+        echo -e "$USER \t($REALNAME)"
+    done
+    IFS=$OLDIFS
+    echo
+
+    echo "\
+Look over the list carefully. Continue only if everything looks right
+to you. If an account appears here that you do not want merged, you
+may edit this script and add the user name to the IGNOREUSERS global
+variable at the top of the file.
+
+Merging accounts can take a long time, so please be patient. You can
+press Ctrl+c to abort this script at any time.
+"
+    continueprompt
+    until getedittoken; do
+        echo
+        retryprompt
+    done
+    ITER=1
+    OLDIFS=$IFS; IFS=$'\n' # tell for-loop to delimit usernames by line breaks, not spaces
+    for USER in $USERLIST; do
+        echo -n "[$ITER/$USERCOUNT] "
+        until demotesysop "$USER"; do
+            echo
+            retryprompt
+        done
+        until usermerge "$USER" "$MERGEDINSTRUCNAME"; do
+            echo
+            retryprompt
+        done
+        let ITER++
+    done
+    IFS=$OLDIFS
+    echo
+
+    echo "\
+Merging of former instructor accounts complete.
+"
+
+else
+
+    echo "\
+All former instructor accounts have already been merged and deleted.
+"
+
+fi
+continueprompt
+
+
+echo "\
+**********************************************************************
+**          STEP 4: DELETE LAB NOTEBOOKS AND TERM PAPERS            **
+**********************************************************************
+"
+
+# List all pages in the User, User talk, Private, and Private talk
+# namespaces.
+
+PAGELISTALL=$(listpages $NS_USER $NS_USER_TALK $NS_PRIVATE $NS_PRIVATE_TALK)
+
+# Create a regular expression that matches all pages in the
+# IGNOREPAGES list, as well as the User and Private pages (including
+# subpages, e.g., User:Foo/Bar) of all users in the IGNOREUSERS list.
+
+REGEXPIGNORE="^$(echo $IGNOREPAGES | tr -s ' ' '|')|((Private:|)User:($(echo $IGNOREUSERS | tr -s ' ' '|'))(/.*|_'.*|))$"
+
+# List the User and Private pages of all users in the IGNOREUSERS
+# list, which will not be deleted.
+
+PAGELISTIGN=$(echo "$PAGELISTALL" | grep -E "$REGEXPIGNORE")
+
+# List the remaining pages, which will be deleted, and count them.
+
+PAGELISTDEL=$(echo "$PAGELISTALL" | grep -E "$REGEXPIGNORE" -v)
+PAGECOUNT=$(echo "$PAGELISTDEL" | wc -l)
+
+
+if [ -n "$PAGELISTDEL" ]; then
+
+    echo "\
+This step will reversibly delete pages in the following namespaces:
+  - User & Private            (lab notebooks and term papers)
+  - User talk & Private talk  (comments on student work)
+
+Pages listed in the IGNOREPAGES global variable at the top of this
+file will be ignored, as will the User and Private pages of users
+listed in the IGNOREUSERS global variable. The following pages will be
+ignored:
+"
+    echo "$PAGELISTIGN"
+    echo
+
+    echo "\
+The method used here is equivalent to clicking the \"Delete\" link on
+each page. The options to view the histories of these pages and
+undelete them will still be present on the wiki to instructors. This
+content will be permanently deleted in a later step.
+
+The total number of pages that will be deleted is: $PAGECOUNT
+
+Deleting pages can take a long time, so please be patient. You can
+press Ctrl+c to abort this script at any time.
+"
+    continueprompt
+    until getedittoken; do
+        echo
+        retryprompt
+    done
+    ITER=1
+    OLDIFS=$IFS; IFS=$'\n' # tell for-loop to delimit page titles by line breaks, not spaces
+    for PAGE in $PAGELISTDEL; do
+        echo -n "[$ITER/$PAGECOUNT] "
+        deletepageorfile "$PAGE"
+        let ITER++
+    done
+    IFS=$OLDIFS
+    echo
+
+    echo "\
+Deletion of lab notebooks and term papers complete.
+"
+
+else
+
+    echo "\
+All lab notebooks and term papers have already been deleted.
+"
+
+fi
+continueprompt
+
+
+# List all pages in the Talk namespace and count them.
+
+PAGELISTALL=$(listpages $NS_TALK)
+PAGECOUNT=$(echo "$PAGELISTALL" | wc -l)
+
+if [ -n "$PAGELISTALL" ]; then
+
+    echo "\
+There is a namespace in which students can provide comments that may
+be worth reading now:
+  - Talk  (comments on course materials)
+
+Since some of these pages may be comment exemplars provided with the
+term paper exemplars, and others might be student feedback that you
+should look at, they will not be deleted by this script. It is
+recommended that you look at each page now and delete it manually if
+that is appropriate.
+
+$PAGELISTALL
+"
+    continueprompt
+
+fi
+
+
+echo "\
+**********************************************************************
+**                  STEP 5: DELETE STUDENT FILES                    **
+**********************************************************************
+"
+
+# List all files not uploaded by instructors and count them
+
+FILELIST=$(listfiles $IGNOREUSERS $MERGEDINSTRUCNAME)
+FILECOUNT=$(echo "$FILELIST" | wc -l)
+
+
+if [ -n "$FILELIST" ]; then
+
+    echo "\
+This step will delete all files uploaded by non-instructors.
+
+The method used here is equivalent to clicking the \"Delete\" link on
+each file page. The options to view the histories of these files and
+undelete them will still be present on the wiki to instructors. Image
+thumbnails and resized versions of images are deleted in this step,
+freeing up potentially tens of gigabytes of hard drive space. The
+original files will be permanently deleted in a later step.
+
+The total number of files that will be deleted is: $FILECOUNT
+
+Deleting files can take a *VERY* long time (~0.6 sec per file = ~6000
+files per hour). If you are remotely connected to the server, it is
+highly recommended that you use the command line 'screen' utility
+while running this portion of the script. This will allow you to
+disconnect from the server without interrupting the script. To use it,
+quit this script and run the following:
+
+    screen -dRR
+
+You will be placed in a pre-existing screen session if there is one;
+otherwise a new session will be created. From there you can run this
+script as before. If you want to disconnect from the server while the
+script is still running, press Ctrl+a d (the key combination Ctrl+a
+followed by the 'd' key alone). This will \"detach\" you from the screen
+session, and you will be returned to the normal command line where you
+can log out. To return to the screen session later, log into the
+server and enter the 'screen -dRR' command again. This works even if
+your connection to the server was accidentally interrupted without you
+manually logging out.
+
+You can press Ctrl+c to abort this script at any time.
+"
+    continueprompt
+
+    echo "Current disk usage:"
+    echo "$(df -H /)"
+    echo
+
+    echo -n "Resetting filesystem permissions... "
+    chown -R www-data:www-data /var/www/
+    chmod -R ug+rw /var/www/
+    echo "done"
+
+    until getedittoken; do
+        echo
+        retryprompt
+    done
+    ITER=1
+    OLDIFS=$IFS; IFS=$'\n' # tell for-loop to delimit file titles by line breaks, not spaces
+    for FILE in $FILELIST; do
+        if [ $(($ITER % 200)) -eq 0 ]; then
+            # fetch a new edit token periodically so it does not expire
+            until getedittoken; do
+                echo
+                retryprompt
+            done
+        fi
+        echo -n "[$ITER/$FILECOUNT] "
+        deletepageorfile "$FILE"
+        let ITER++
+    done
+    IFS=$OLDIFS
+
+    echo -n "Resetting filesystem permissions... "
+    chown -R www-data:www-data /var/www/
+    chmod -R ug+rw /var/www/
+    echo "done"
+    echo
+
+    echo "Current disk usage:"
+    echo "$(df -H /)"
+    echo
+
+    echo "\
+Deletion of student files complete.
+"
+
+else
+
+    echo "\
+All student files have already been deleted.
+"
+
+fi
+continueprompt
+
+
+echo "\
+**********************************************************************
+**            STEP 6: PERMANENTLY DELETE STUDENT CONTENT            **
+**********************************************************************
+
+When a page or file is deleted on the wiki, it becomes inaccessible to
+normal users, and a pink box appears on the deleted page stating that
+the page was deleted. However, it is more accurate to say that the
+item was archived, since administrators can still review the revision
+history or restore the item.
+
+In this step, the pages and files deleted in prior steps will be
+permanently deleted, removing them and their revision histories
+completely from the wiki, and freeing up potentially gigabytes of hard
+drive space.
+
+Furthermore, all entries in the \"Recent changes\" and Special:Log lists
+that pertain to the deleted items will be removed, such as the
+thousands of edits made by students to their pages and instructors
+marking student comments as patrolled.
+
+These actions will apply not only to items deleted by this script, but
+also to items deleted manually.
+
+NOTE: Warnings may appear stating that files are \"not found in group
+'deleted'\". These should be ignored.
+"
+continueprompt
+
+
+echo "Current disk usage:"
+echo "$(df -H /)"
+echo
+
+echo -n "Resetting filesystem permissions... "
+chown -R www-data:www-data /var/www/
+chmod -R ug+rw /var/www/
+echo "done"
+
+php /var/www/mediawiki/maintenance/deleteArchivedRevisions.php --delete
+echo
+php /var/www/mediawiki/maintenance/deleteArchivedFiles.php --delete --force
+echo
+
+echo -n "Resetting filesystem permissions... "
+chown -R www-data:www-data /var/www/
+chmod -R ug+rw /var/www/
+echo "done"
+
+apache2ctl restart
+
+echo "Deleting relevant log entries..."
+echo
+
+# Remove records about deleting pages, files, and users. Necessary to
+# remove the pink "This page has been deleted" boxes.
+
+querywikidb "DELETE FROM recentchanges WHERE rc_log_type = 'delete';"
+querywikidb "DELETE FROM logging WHERE log_type = 'delete';"
+
+# Remove records about student edits and uploads.
+
+querywikidb "DELETE FROM recentchanges WHERE rc_user = (SELECT user_id FROM user WHERE user_name = '$MERGEDSTUDENTNAME');"
+querywikidb "DELETE FROM logging WHERE log_user = (SELECT user_id FROM user WHERE user_name = '$MERGEDSTUDENTNAME');"
+
+# Remove records about patrolling student comments on term paper benchmarks.
+
+querywikidb "DELETE FROM recentchanges WHERE rc_log_type = 'patrol';"
+querywikidb "DELETE FROM logging WHERE log_type = 'patrol';"
+
+echo "Current disk usage:"
+echo "$(df -H /)"
+echo
+
+
+echo "\
+Permanent deletion of archived pages and files complete.
+"
+continueprompt
+
+
+echo "\
+**********************************************************************
+**                      STEP 7: DELETE GRADES                       **
+**********************************************************************
+
+This step will delete the scores that former students received on
+assignments. The assignments themselves will not be changed. Entries
+in Special:Log/grades will be deleted as well.
+"
+continueprompt
+
+
+# Remove grades for former students.
+
+querywikidb "TRUNCATE TABLE scholasticgrading_adjustment;"
+querywikidb "TRUNCATE TABLE scholasticgrading_evaluation;"
+querywikidb "TRUNCATE TABLE scholasticgrading_groupuser;"
+
+# Remove records about assigning grades.
+
+querywikidb "DELETE FROM recentchanges WHERE rc_log_type = 'grades';"
+querywikidb "DELETE FROM logging WHERE log_type = 'grades';"
+
+
+echo "\
+Deletion of grades complete.
+"
+continueprompt
+
+
+echo "\
+**********************************************************************
+**                     STEP 8: WIKI LOG CLEANUP                     **
+**********************************************************************
+
+This step will delete all remaining entries in the \"Recent changes\"
+and Special:Log lists that are remnants of the last semester or this
+script.
+"
+continueprompt
+
+
+# Remove records about actions taken by the bot.
+
+querywikidb "DELETE FROM recentchanges WHERE rc_user = (SELECT user_id FROM user WHERE user_name = '$BOTNAME');"
+querywikidb "DELETE FROM logging WHERE log_user = (SELECT user_id FROM user WHERE user_name = '$BOTNAME');"
+
+
+# Remove records about manually merging user accounts.
+
+querywikidb "DELETE FROM recentchanges WHERE rc_log_type = 'usermerge';"
+querywikidb "DELETE FROM logging WHERE log_type = 'usermerge';"
+
+
+# Remove records about manually creating user accounts.
+
+querywikidb "DELETE FROM recentchanges WHERE rc_log_type = 'newusers';"
+querywikidb "DELETE FROM logging WHERE log_type = 'newusers';"
+
+
+# Remove records about renaming user accounts.
+
+querywikidb "DELETE FROM recentchanges WHERE rc_log_type = 'renameuser';"
+querywikidb "DELETE FROM logging WHERE log_type = 'renameuser';"
+
+
+# Remove records about adjusting group membership (e.g., term paper authors).
+
+querywikidb "DELETE FROM recentchanges WHERE rc_log_type = 'rights';"
+querywikidb "DELETE FROM logging WHERE log_type = 'rights';"
+
+
+# Remove records about moving/renaming pages and files.
+
+querywikidb "DELETE FROM recentchanges WHERE rc_log_type = 'move';"
+querywikidb "DELETE FROM logging WHERE log_type = 'move';"
+
+
+# Remove watchlist entries for merged accounts.
+
+querywikidb "DELETE FROM watchlist WHERE wl_user = (SELECT user_id FROM user WHERE user_name = '$MERGEDSTUDENTNAME');"
+querywikidb "DELETE FROM watchlist WHERE wl_user = (SELECT user_id FROM user WHERE user_name = '$MERGEDINSTRUCNAME');"
+
+
+# Remove watchlist entries for pages and files that no longer exist.
+
+querywikidb "DELETE wl.* FROM watchlist AS wl LEFT JOIN page AS p ON (p.page_namespace = wl.wl_namespace AND p.page_title = wl.wl_title) WHERE p.page_id IS NULL;"
+
+
+echo "\
+Deletion of old log entries complete.
+"
+continueprompt
+
+
+echo "\
+**********************************************************************
+**                 STEP 9: DELETE SURVEY RESPONSES                  **
+**********************************************************************
+"
+
+# Create a regular expression that matches the user names in the
+# IGNOREUSERS list
+
+REGEXPIGNORE="^($(echo $IGNOREUSERS | tr -s ' ' '|'))$"
+
+
+echo "\
+This step will delete all responses from students to surveys in the
+Django system and close all open surveys. All Django accounts will
+also be deleted, except those listed in the IGNOREUSERS global
+variable at the top of this file. The accounts that will be ignored
+are:
+"
+querydjangodb "SELECT CONCAT(username, ' (', first_name, ' ', last_name, ')') FROM auth_user WHERE username REGEXP '$REGEXPIGNORE';"
+echo
+continueprompt
+
+
+querydjangodb "TRUNCATE django_admin_log;"
+querydjangodb "TRUNCATE django_session;"
+
+querydjangodb "TRUNCATE survey_choiceanswer;"
+querydjangodb "TRUNCATE survey_ratinganswer;"
+querydjangodb "TRUNCATE survey_textanswer;"
+querydjangodb "TRUNCATE survey_surveycredit;"
+
+querydjangodb "TRUNCATE credit_team_members;"
+querydjangodb "DELETE FROM credit_team; ALTER TABLE credit_team AUTO_INCREMENT = 1;" # cannot be truncated because of a foreign key constraint
+querydjangodb "DELETE FROM auth_user WHERE username NOT REGEXP '$REGEXPIGNORE';"
+
+
+# Close all survey sessions.
+
+querydjangodb "UPDATE survey_surveysession SET open=0;"
+
+
+echo "\
+Deletion of survey responses complete.
+"
+continueprompt
+
+
+echo "\
+**********************************************************************
+**                             FINISHED                             **
+**********************************************************************
+
+This script is now finished. You should check that it has done its job
+by visiting these pages:
+
+    - Special:ListUsers
+
+      The only accounts that should be listed are the
+      $BOTNAME, $MERGEDSTUDENTNAME, and $MERGEDINSTRUCNAME accounts,
+      as well as those accounts that were listed in the IGNOREUSERS
+      variable.
+
+    - Special:AllPages
+
+      Check that the Main, Talk, User, User talk, Private, Private
+      talk, and File namespaces are all absent of student content.
+
+    - Special:ListFiles
+
+      Check that this list is absent of student content.
+
+    - Special:Log
+
+      You should see only instructor actions listed on the front page.
+      Using the drop-down menu, you can view specific logs, such as
+      the grades log. Most of these should be empty, but a few will
+      list instructor actions. This is intended.
+
+    - Special:Log/$BOTNAME
+    - Special:Log/$MERGEDSTUDENTNAME
+    - Special:ListFiles/$MERGEDSTUDENTNAME
+    - Special:Contributions/$MERGEDSTUDENTNAME
+    - Special:DeletedContributions/$MERGEDSTUDENTNAME
+
+      These lists should be empty.
+
+    - Special:Grades
+
+      There should not be any student grades listed.
+
+    - Django admin page:
+      https://$(hostname).case.edu/django/admin
+
+      The list of users should contain only those accounts listed in
+      the IGNOREUSERS variable. There should be no teams. All survey
+      sessions should be closed.
+"
+continueprompt
+

@@ -1,0 +1,12 @@
+--- a/modules/jquery.wikiEditor.preview.js
++++ b/modules/jquery.wikiEditor.preview.js
+@@ -90,6 +90,9 @@
+ 
+ 						mw.hook( 'wikipage.content' ).fire( $content );
+ 						context.modules.preview.$preview.append( $content );
++
++						// Process math
++						MathJax.Hub.Queue(["Typeset",MathJax.Hub]);
+ 					} );
+ 				}
+ 			} );

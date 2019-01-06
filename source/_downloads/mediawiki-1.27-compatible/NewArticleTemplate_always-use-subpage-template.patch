@@ -1,0 +1,22 @@
+--- a/NewArticleTemplate.php
++++ b/NewArticleTemplate.php
+@@ -52,12 +52,13 @@ function newArticleTemplates( $newPage ) {
+ 	$isSubpage = false;
+ 
+ 	if ( $title->isSubpage() ) {
+-		$baseTitle = Title::newFromText(
+-			$title->getBaseText(),
+-			$title->getNamespace() );
+-		if ( $baseTitle->exists() ) {
+-			$isSubpage = true;
+-		}
++		#$baseTitle = Title::newFromText(
++		#	$title->getBaseText(),
++		#	$title->getNamespace() );
++		#if ( $baseTitle->exists() ) {
++		#	$isSubpage = true;
++		#}
++		$isSubpage = true;
+ 	}
+ 
+ 	/* we might want to return if this is a subpage */

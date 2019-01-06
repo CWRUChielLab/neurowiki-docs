@@ -1,0 +1,65 @@
+/**********************************************
+ *          CITATION TEMPLATE STYLES          *
+ **********************************************/
+
+/* Reset italic styling set by user agent */
+cite, dfn {
+    font-style: inherit;
+}
+
+/* Consistent size for <small>, <sub> and <sup> */
+small {
+    font-size: 85%;
+}
+.mw-body sub,
+.mw-body sup,
+span.reference /* for Parsoid */ {
+    font-size: 80%;
+}
+
+/* Highlight linked elements (such as clicked references) in blue */
+body.action-info :target,
+.citation:target {
+    background-color: #DEF;  /* Fallback */
+    background-color: rgba(0, 127, 255, 0.133);
+}
+
+/* Styling for citations. Breaks long urls, etc., rather than overflowing box */
+.citation {
+    word-wrap: break-word;
+}
+
+/* For linked citation numbers and document IDs, where the number need not be shown
+   on a screen or a handheld, but should be included in the printed version */
+@media screen, handheld {
+    .citation .printonly {
+        display: none;
+    }
+}
+
+/* Make the list of references smaller */
+ol.references,
+div.reflist,
+div.refbegin {
+    font-size: 90%;            /* Default font-size */
+    margin-bottom: 0.5em;
+}
+div.refbegin-100 {
+    font-size: 100%;           /* Option for normal fontsize in {{refbegin}} */
+}
+div.reflist ol.references {
+    font-size: 100%;           /* Reset font-size when nested in div.reflist */
+    margin-bottom: 0;          /* Avoid double margin when nested in dev.reflist */
+    list-style-type: inherit;  /* Enable custom list style types */
+}
+
+/* Ensure refs in table headers and the like aren't bold or italic */
+sup.reference {
+    font-weight: normal;
+    font-style: normal;
+}
+
+/* Allow hidden ref errors to be shown by user CSS */
+span.brokenref {
+    display: none;
+}

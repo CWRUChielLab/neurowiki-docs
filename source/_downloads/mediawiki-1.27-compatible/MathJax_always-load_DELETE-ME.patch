@@ -1,0 +1,11 @@
+--- a/MathJax.php
++++ b/MathJax.php
+@@ -38,7 +38,7 @@ class MathJax_Parser {
+         global $wgMathJaxProcConf;
+         global $wgMathJaxLocConf;
+ 
+-        if(self::$mark_n == 0) return true; // there was no math detected
++        #if(self::$mark_n == 0) return true; // there was no math detected
+ 
+         $tempScript = "<script type='text/javascript' src='" . $wgMathJaxJS . "?config=" . $wgMathJaxProcConf;
+         if (!is_null($wgMathJaxLocConf)) $tempScript = $tempScript . "," . $wgMathJaxLocConf;

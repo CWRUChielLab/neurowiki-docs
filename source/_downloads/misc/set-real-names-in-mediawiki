@@ -1,0 +1,97 @@
+#!/usr/bin/python
+
+# Place this script in /usr/local/sbin and make it executable (chmod +x).
+#
+# This script will fetch real names for any MediaWiki user lacking a real name.
+
+
+from __future__ import print_function
+import MySQLdb
+import ldap
+
+def ldap_search(searchstr):
+    """Use a search string to fetch a uid and displayName using LDAP"""
+
+    # login to the LDAP server
+    l = ldap.init('ldap.case.edu')
+    l.simple_bind('anonymous','')
+
+    # look up the user's name by user id
+    res_id = l.search('ou=People,o=cwru.edu,o=isp',
+            ldap.SCOPE_SUBTREE, searchstr)
+    res_t, res_d = l.result(res_id, 1000)
+
+    if len(res_d) > 0:
+        result = [res_d[0][1]['uid'][0],
+                  res_d[0][1]['displayName'][0]]
+                  #res_d[0][1]['cn'][0],
+                  #res_d[0][1]['givenName'][0],
+                  #res_d[0][1]['sn'][0]]
+    else:
+        result = []
+
+    # log out of the server
+    l.unbind_s()
+
+    return result
+
+# database connection credentials
+sql_user = 'root'
+sql_pass = '<MySQL password>'
+sql_db   = 'wikidb'
+
+# connect to the wiki database
+db  = MySQLdb.connect(host='localhost', user=sql_user, passwd=sql_pass, db=sql_db)
+cur = db.cursor()
+
+# query for ids of users lacking a real name
+cur.execute('SELECT user_name FROM user WHERE (user_real_name = "" OR LOWER(CONVERT(user_real_name USING latin1)) = LOWER(CONVERT(user_name USING latin1)))')
+ids = [row[0] for row in cur.fetchall()]
+
+if len(ids) == 0:
+    print("Aborting: All wiki users already have real names.")
+    exit(0)
+
+# print the user ids
+print("Wiki users without a real name:")
+print(' '.join(ids) + '\n')
+
+# query ldap for user real names
+results = []
+for id in ids:
+    result = ldap_search("(uid={0})".format(id))
+    if len(result) > 0:
+        results.append(result)
+    else:
+        print('%s does not appear in the LDAP database!' % (id))
+
+if len(results) == 0:
+    print("Aborting: All wiki users without real names cannot be identified.")
+    exit(0)
+
+# construct a list of queries for updating user real names
+sql_queries = [];
+for user in results:
+    sql_queries.append('UPDATE user SET user_real_name="%s" WHERE user_name="%s"' % (user[1], user[0].title()))
+
+# print the queries
+print('\n'.join(sql_queries) + '\n')
+
+# prompt for confirmation
+raw_input('Press [Enter] to execute these SQL commands.')
+
+# execute each query
+for query in sql_queries:
+    try:
+        cur.execute(query)
+    except MySQLdb.Error, e:
+        try:
+            print('MySQL Error [%d]: %s' % (e.args[0], e.args[1]))
+        except IndexError:
+            print('MySQL Error: %s' % str(e))
+db.commit()
+print('Done!')
+
+# close the database connection
+cur.close()
+db.close()

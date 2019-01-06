@@ -1,0 +1,3755 @@
+<mediawiki xmlns="http://www.mediawiki.org/xml/export-0.10/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mediawiki.org/xml/export-0.10/ http://www.mediawiki.org/xml/export-0.10.xsd" version="0.10" xml:lang="en">
+  <siteinfo>
+    <sitename>Wikipedia</sitename>
+    <dbname>enwiki</dbname>
+    <base>https://en.wikipedia.org/wiki/Main_Page</base>
+    <generator>MediaWiki 1.27.0-wmf.9</generator>
+    <case>first-letter</case>
+    <namespaces>
+      <namespace key="-2" case="first-letter">Media</namespace>
+      <namespace key="-1" case="first-letter">Special</namespace>
+      <namespace key="0" case="first-letter" />
+      <namespace key="1" case="first-letter">Talk</namespace>
+      <namespace key="2" case="first-letter">User</namespace>
+      <namespace key="3" case="first-letter">User talk</namespace>
+      <namespace key="4" case="first-letter">Wikipedia</namespace>
+      <namespace key="5" case="first-letter">Wikipedia talk</namespace>
+      <namespace key="6" case="first-letter">File</namespace>
+      <namespace key="7" case="first-letter">File talk</namespace>
+      <namespace key="8" case="first-letter">MediaWiki</namespace>
+      <namespace key="9" case="first-letter">MediaWiki talk</namespace>
+      <namespace key="10" case="first-letter">Template</namespace>
+      <namespace key="11" case="first-letter">Template talk</namespace>
+      <namespace key="12" case="first-letter">Help</namespace>
+      <namespace key="13" case="first-letter">Help talk</namespace>
+      <namespace key="14" case="first-letter">Category</namespace>
+      <namespace key="15" case="first-letter">Category talk</namespace>
+      <namespace key="100" case="first-letter">Portal</namespace>
+      <namespace key="101" case="first-letter">Portal talk</namespace>
+      <namespace key="108" case="first-letter">Book</namespace>
+      <namespace key="109" case="first-letter">Book talk</namespace>
+      <namespace key="118" case="first-letter">Draft</namespace>
+      <namespace key="119" case="first-letter">Draft talk</namespace>
+      <namespace key="446" case="first-letter">Education Program</namespace>
+      <namespace key="447" case="first-letter">Education Program talk</namespace>
+      <namespace key="710" case="first-letter">TimedText</namespace>
+      <namespace key="711" case="first-letter">TimedText talk</namespace>
+      <namespace key="828" case="first-letter">Module</namespace>
+      <namespace key="829" case="first-letter">Module talk</namespace>
+      <namespace key="2300" case="first-letter">Gadget</namespace>
+      <namespace key="2301" case="first-letter">Gadget talk</namespace>
+      <namespace key="2302" case="case-sensitive">Gadget definition</namespace>
+      <namespace key="2303" case="case-sensitive">Gadget definition talk</namespace>
+      <namespace key="2600" case="first-letter">Topic</namespace>
+    </namespaces>
+  </siteinfo>
+  <page>
+    <title>MediaWiki:Gadget-refToolbar</title>
+    <ns>8</ns>
+    <id>16682480</id>
+    <revision>
+      <id>606474910</id>
+      <parentid>361972325</parentid>
+      <timestamp>2014-04-30T13:41:53Z</timestamp>
+      <contributor>
+        <username>Edokter</username>
+        <id>1624037</id>
+      </contributor>
+      <model>wikitext</model>
+      <format>text/x-wiki</format>
+      <text xml:space="preserve" bytes="145">[[Wikipedia:RefToolbar|refToolbar]], adds a &quot;cite&quot; button to the editing toolbar for quick and easy addition of commonly used citation templates.</text>
+      <sha1>t43p5skaoyp752svdpq1ffba788xfkw</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>MediaWiki:Gadget-refToolbar.js</title>
+    <ns>8</ns>
+    <id>16682413</id>
+    <revision>
+      <id>622655288</id>
+      <parentid>606473261</parentid>
+      <timestamp>2014-08-24T21:21:14Z</timestamp>
+      <contributor>
+        <username>He7d3r</username>
+        <id>5559148</id>
+      </contributor>
+      <comment>Fix the logic: the WikiEditor toolbar is also visible when the user disables the preference corresponding to the classic edit toolbar, but enables the enhanced one, so add the buttons in that case as well ([[bugzilla:30795]])</comment>
+      <model>javascript</model>
+      <format>text/javascript</format>
+      <text xml:space="preserve" bytes="2339">/**
+ * RefToolbar
+ *
+ * Adds tools for citing references to the edit toolbar.
+ * See [[Wikipedia:RefToolbar]] for further documentation. One of
+ * three possible versions will load (Reftoolbar 2.0b, Reftoolbar 2.0a,
+ * or Reftoolbar 1.0) depending on the user preferences (the
+ * usebetatoolbar and usebetatoolbar-cgd parameters).
+ *
+ * @see: [[Wikipedia:RefToolbar]]
+ * @see: [[MediaWiki:RefToolbar.js]]
+ * @see: [[MediaWiki:RefToolbarConfig.js]]
+ * @see: [[MediaWiki:RefToolbarLegacy.js]]
+ * @see: [[MediaWiki:RefToolbarMessages-en.js]]
+ * @see: [[MediaWiki:RefToolbarMessages-de.js]]
+ * @see: [[MediaWiki:RefToolbarNoDialogs.js]]
+ * @see: [[MediaWiki:Gadget-refToolbarBase.js]]
+ * @author: [[User:Mr.Z-man]]
+ * @author: [[User:Kaldari]]
+ */
+/*jshint browser: true, camelcase: true, curly: true, eqeqeq: true */
+/*global jQuery, mediaWiki, importScript */
+( function ( mw, $ ) {
+'use strict';
+function initializeRefTools() {
+	if ( window.refToolbarInstalled || $( '#wpTextbox1[readonly]' ).length ){
+		return;
+	}
+	if ( mw.user.options.get( 'usebetatoolbar' ) ) {
+		// Enhanced editing toolbar is on. Going to load RefToolbar 2.0a or 2.0b.
+		if ( mw.user.options.get( 'usebetatoolbar-cgd' ) ) {
+			// Dialogs are on. Loading 2.0b. (standard)
+			// TODO:
+			// * Explicitly declare global variables from [[MediaWiki:RefToolbar.js]] using window.*
+			// * Move [[MediaWiki:RefToolbar.js]] to [[MediaWiki:Gadget-refToolbarDialogs.js]]
+			// * Create the module 'ext.gadget.refToolbarDialogs' depending on 'ext.gadget.refToolbarBase' and 'ext.wikiEditor.toolbar'
+			// * Replace the code below by mw.loader.load( 'ext.gadget.refToolbarDialogs' );
+			mw.loader.using( [ 'ext.gadget.refToolbarBase', 'ext.wikiEditor.toolbar' ], function () {
+				importScript( 'MediaWiki:RefToolbar.js' );
+			} );
+		} else {
+			// Dialogs are off. Loading 2.0a.
+			mw.loader.using( 'ext.wikiEditor.toolbar', function () {
+				importScript( 'MediaWiki:RefToolbarNoDialogs.js' );
+			} );
+		}
+	} else if ( mw.user.options.get( 'showtoolbar' ) ) {
+		// Enhanced editing toolbar is off. Loading RefToolbar 1.0. (legacy)
+		importScript( 'MediaWiki:RefToolbarLegacy.js' );
+	} else {
+		return;
+	}
+	window.refToolbarInstalled = true;
+}
+
+if ( $.inArray( mw.config.get( 'wgAction' ), [ 'edit', 'submit' ] ) !== -1 ) {
+	$( initializeRefTools );
+}
+
+}( mediaWiki, jQuery ) );</text>
+      <sha1>fvoe4lqz9futm7kvghx9zpahw0m8ks5</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>MediaWiki:Gadget-refToolbarBase.js</title>
+    <ns>8</ns>
+    <id>30643986</id>
+    <revision>
+      <id>688472969</id>
+      <parentid>677223085</parentid>
+      <timestamp>2015-11-01T04:06:25Z</timestamp>
+      <contributor>
+        <username>Mr.Z-man</username>
+        <id>646348</id>
+      </contributor>
+      <comment>fix for issue reported on talk page</comment>
+      <model>javascript</model>
+      <format>text/javascript</format>
+      <text xml:space="preserve" bytes="11684">/* jshint asi: true */
+/* global mw, $, CiteTB, citeTemplate, citeErrorCheck */
+
+if ( window.CiteTB === undefined ) {
+  window.CiteTB = {
+    &quot;Templates&quot; : {}, // All templates
+    &quot;Options&quot; : {}, // Global options
+    &quot;UserOptions&quot; : {}, // User options
+    &quot;DefaultOptions&quot; : {}, // Script defaults
+    &quot;ErrorChecks&quot; : {} // Error check functions
+  };
+}
+
+if (typeof mw.usability == 'undefined') {
+  mw.usability = {};
+  mw.usability.getMsg = function(m) { return mw.messages.get(m); }
+  mw.usability.addMessages = function(msgs) { mw.messages.set(msgs); };
+}
+
+// Object for cite templates
+window.citeTemplate = function (templatename, shortform, basicfields, expandedfields) {
+  // Properties
+  this.templatename = templatename; // The template name - &quot;cite web&quot;, &quot;cite book&quot;, etc.
+  this.shortform = shortform; // A short form, used for the dropdown box
+  this.basic = basicfields; // Basic fields - author, title, publisher...
+  // Less common - quote, archiveurl - should be everything the template supports minus the basic ones
+  this.extra = expandedfields;
+
+  this.incrementables = {};
+
+  // Add it to the list
+  CiteTB.Templates[this.templatename] = this;
+  // Methods
+  this.makeFormInner = function(fields, incrsetup) {
+    var i=0;
+    var trs = [];
+    var autofills = []
+    for (i=0; i&lt;fields.length; i++) {
+      var fieldobj = fields[i];
+      var field = labelfield = fieldobj.field;
+      var ad = false;
+      if (incrsetup &amp;&amp; fieldobj.increment_group) {
+      		field = fieldobj.field.replace('&lt;N&gt;', '1');
+      		labelfield = fieldobj.field.replace('&lt;N&gt;', '');
+      		if (this.incrementables[fieldobj.increment_group] &amp;&amp; !this.incrementables[fieldobj.increment_group].setup) {
+      			// The object has been created, but not fully initialized
+      			this.incrementables[fieldobj.increment_group]['fields'].push(fieldobj)
+      		} else if (!this.incrementables[fieldobj.increment_group]) {
+      			// Object not yet created
+      			this.incrementables[fieldobj.increment_group] = {
+      				'fields': [fieldobj],
+      				'val':1,
+      				'setup': false
+      			};
+      		} else if (this.incrementables[fieldobj.increment_group] &amp;&amp; this.incrementables[fieldobj.increment_group].setup) {
+      			// Fully initialized from a previous invocation of this function, just resetting the number
+      			this.incrementables[fieldobj.increment_group].val = 1
+      		}
+      } else if (fieldobj.increment_group) {
+      	// Adding a new row
+      	incrval = this.incrementables[fieldobj.increment_group].val;
+      	field = fieldobj.field.replace('&lt;N&gt;', incrval.toString());
+      	labelfield = fieldobj.field.replace('&lt;N&gt;', '');
+      }
+      if ($.inArray(field, CiteTB.getOption('autodate fields')) != -1 ) {
+        im = $('&lt;img /&gt;').attr('src', '//upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Nuvola_apps_date.svg/20px-Nuvola_apps_date.svg.png');
+        im.attr('alt', mw.usability.getMsg('cite-insert-date')).attr('title', mw.usability.getMsg('cite-insert-date'));
+        var ad = $('&lt;a /&gt;').attr('href', '#');
+        ad.append(im);
+        ad.attr('id', 'cite-date-'+CiteTB.escStr(this.shortform)+'-'+field);
+        $( document ).on( 'click', '#cite-date-'+CiteTB.escStr(this.shortform)+'-'+field, CiteTB.fillAccessdate );
+      }
+	  
+      if (fieldobj.autofillid) {
+        var autotype = fieldobj.autofillid;
+        im = $('&lt;img /&gt;').attr('src', '//upload.wikimedia.org/wikipedia/commons/thumb/1/17/System-search.svg/20px-System-search.svg.png');
+        im.attr('alt', mw.usability.getMsg('cite-autofill-alt')).attr('title', mw.usability.getMsg('cite-autofill-alt'));
+        var ad = $('&lt;a /&gt;').attr('href', '#');
+        ad.append(im);
+        ad.attr('id', 'cite-auto-'+CiteTB.escStr(this.shortform)+'-'+field+'-'+autotype);
+        autofills.push('#cite-auto-'+CiteTB.escStr(this.shortform)+'-'+field+'-'+autotype);
+      }
+      
+      if (fieldobj.increment_button) {
+        var incrtype = fieldobj.increment_group;
+        im = $('&lt;img /&gt;').attr('src', '//upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Nuvola_action_edit_add.svg/20px-Nuvola_action_edit_add.svg.png');
+        im.attr('alt', mw.usability.getMsg('cite-increment-alt')).attr('title', mw.usability.getMsg('cite-increment-alt'));
+        var ad = $('&lt;a /&gt;').attr('href', '#');
+        ad.append(im);
+        ad.attr('id', 'cite-incr-'+CiteTB.escStr(this.shortform)+'-'+incrtype);
+      }
+	  
+      var display = mw.usability.getMsg('cite-'+labelfield+'-label');
+      if (typeof display !== 'string') {
+      	if (fieldobj.label) {
+      		display = CiteTB.fixStr(fieldobj.label);
+      	} else {
+      		display = CiteTB.fixStr(labelfield)
+      	}
+      }
+      var tooltip = fieldobj.tooltip ? $('&lt;abbr /&gt;').attr('title', mw.usability.getMsg(fieldobj.tooltip)).html('&lt;sup&gt;?&lt;/sup&gt;') : false;
+      
+      var input = '';
+      if (ad) {
+        input = $('&lt;input tabindex=&quot;1&quot; style=&quot;width:85%&quot; type=&quot;text&quot; /&gt;');
+      } else {
+        input = $('&lt;input tabindex=&quot;1&quot; style=&quot;width:100%&quot; type=&quot;text&quot; /&gt;');
+      }
+      input.attr('id', 'cite-'+CiteTB.escStr(this.shortform)+'-'+field);
+	  if (fieldobj.autofillprop) {
+	  	classname = 'cite-'+CiteTB.escStr(this.shortform)+'-'+fieldobj.autofillprop
+	    if (fieldobj.increment_group) {
+	    	input.addClass('cite-'+CiteTB.escStr(this.shortform)+'-incr-'+fieldobj.increment_group);
+	    	classname+='-'+this.incrementables[fieldobj.increment_group].val.toString();
+	    }
+	    input.addClass(classname);
+	  }
+      var label = $('&lt;label /&gt;');
+      label.attr('for', 'cite-'+CiteTB.escStr(this.shortform)+'-'+field).text(display);
+      if (tooltip) {
+        label.append(tooltip);
+      }
+      var style = 'text-align:right; width:20%;';
+      if (i%2 == 1) {
+        style += ' padding-left:1em;';
+      } else {
+        var tr = $('&lt;tr /&gt;');
+      }
+      var td1 = $('&lt;td class=&quot;cite-form-td&quot; /&gt;').attr('style', style);
+      td1.append(label);
+      tr.append(td1);
+      var td2 = $('&lt;td class=&quot;cite-form-td&quot; style=&quot;width:30%&quot; /&gt;');
+      td2.append(input);
+      if (ad) {
+        td2.append(ad);
+      }
+      tr.append(td2);
+      if (i%2 == 0) {
+        trs.push(tr);
+      }
+    }
+    var needsetup = false;
+    for (g in this.incrementables) {
+    	if (!this.incrementables[g].setup) {
+    		needsetup = true;
+    		$( document ).on( 'click', '#cite-incr-'+CiteTB.escStr(this.shortform)+'-'+g, CiteTB.incrementFields );
+        	this.incrementables[g].setup = true;
+    	}
+    }
+    if (needsetup || $.isEmptyObject(this.incrementables)) {
+    	for(i=0; i&lt;autofills.length; i++) {
+    		$( document ).on( 'click', autofills[i], CiteTB.initAutofill );
+    	}	
+    }
+    return trs;
+  
+  }
+  
+  // gives a little bit of HTML so the open form can be identified
+  this.getInitial = function() {
+    var hidden = '&lt;input type=&quot;hidden&quot; class=&quot;cite-template&quot; value=&quot;' + this.templatename + '&quot;/&gt;';
+    return hidden;
+  }
+  
+  // makes the form used in the dialog boxes
+  this.getForm = function() {
+    var main = $(&quot;&lt;div class='cite-form-container' /&gt;&quot;);
+    var form1 = $('&lt;table style=&quot;width:100%; background-color:transparent;&quot; class=&quot;cite-basic-fields&quot; /&gt;');
+    var i=0;
+    var trs = this.makeFormInner(this.basic, true);
+    for (var i=0; i&lt;trs.length; i++) {
+      form1.append(trs[i]);
+    }
+    
+    var form2 = $('&lt;table style=&quot;width:100%; background-color:transparent; display:none&quot; class=&quot;cite-extra-fields&quot;&gt;');
+    trs = this.makeFormInner(this.extra, true);
+    for (var i=0; i&lt;trs.length; i++) {
+      form2.append(trs[i]);
+    }    
+    main.append(form1).append(form2);
+    
+    var form3 = $('&lt;table style=&quot;width:100%; background-color:transparent;padding-top:1em&quot; class=&quot;cite-other-fields&quot;&gt;');
+    var tr = $('&lt;tr /&gt;');
+    var td1 = $('&lt;td class=&quot;cite-form-td&quot; style=&quot;text-align:right; width:20%&quot; /&gt;');
+    var label1 = $('&lt;label /&gt;');
+    label1.attr('for', &quot;cite-&quot;+CiteTB.escStr(this.shortform)+'-name').text(mw.usability.getMsg('cite-name-label'));
+    td1.append(label1);
+    var td2 = $('&lt;td class=&quot;cite-form-td&quot; style=&quot;width:30%&quot; /&gt;');
+    var input1 = $('&lt;input tabindex=&quot;1&quot; style=&quot;width:100%&quot; type=&quot;text&quot; /&gt;');
+    input1.attr('id', 'cite-'+CiteTB.escStr(this.shortform)+'-name');
+    td2.append(input1);
+    var td3 = $('&lt;td class=&quot;cite-form-td&quot; style=&quot;text-align:right; padding-left:1em; width:20%&quot;&gt;');
+    var label2 = $('&lt;label /&gt;');
+    label2.attr('for', 'cite-'+CiteTB.escStr(this.shortform)+'-group').text(mw.usability.getMsg('cite-group-label'));
+    td3.append(label2);
+    var td4 = $('&lt;td class=&quot;cite-form-td&quot; style=&quot;width:30%&quot; /&gt;');
+    var input2 = $('&lt;input tabindex=&quot;1&quot; style=&quot;width:100%&quot; type=&quot;text&quot; /&gt;');
+    input2.attr('id', 'cite-'+CiteTB.escStr(this.shortform)+'-group');
+    td4.append(input2);
+    tr.append(td1).append(td2).append(td3).append(td4);
+    form3.append(tr);
+    main.append(form3);
+    var extras = $('&lt;div /&gt;');
+    extras.append('&lt;input type=&quot;hidden&quot; class=&quot;cite-form-status&quot; value=&quot;closed&quot; /&gt;');
+    var hidden = $('&lt;input type=&quot;hidden&quot; class=&quot;cite-template&quot; /&gt;');
+    hidden.val(this.templatename);
+    extras.append(hidden);
+    var span1 = $('&lt;span class=&quot;cite-preview-label&quot; style=&quot;display:none;&quot; /&gt;');
+    span1.text(mw.usability.getMsg('cite-raw-preview'));
+    extras.append(span1).append('&lt;div class=&quot;cite-ref-preview&quot; style=&quot;padding:0.5em; font-size:110%&quot; /&gt;');
+    var span2 = $('&lt;span class=&quot;cite-prev-parsed-label&quot; style=&quot;display:none;&quot; /&gt;');
+    span2.text(mw.usability.getMsg('cite-parsed-label'));
+    extras.append(span2).append('&lt;div class=&quot;cite-preview-parsed&quot; style=&quot;padding-bottom:0.5em; font-size:110%&quot; /&gt;');
+    var link = $('&lt;a href=&quot;#&quot; class=&quot;cite-prev-parse&quot; style=&quot;margin:0 1em 0 1em; display:none; color:darkblue&quot; /&gt;');
+    link.text(mw.usability.getMsg('cite-form-parse'));
+    extras.append(link);    
+    main.append(extras);
+    
+    return main;
+  }
+}
+
+/* Class for error checks
+    FIXME: DOCS OUT OF DATE
+   type - type of error check - current options:
+    * 'refcheck' - apply a function on each ref individually
+      * function should accept a ref object, return a string
+    * 'reflist' - apply a function on the entire ref list
+      * function should accept an array of ref objects, return an array of strings
+    * 'search' - apply a function ro the page text
+      * function should accept the page text as a string, return an array of strings
+   The strings returned by the function should be valid HTML
+   
+   func - The function described above
+   testname - Name of the error check, must not contain spaces
+   desc - A short description of the test
+*/
+
+window.citeErrorCheck = function (obj) {
+  this.obj = obj
+  CiteTB.ErrorChecks[this.obj.testname] = this;
+  
+  this.run = function() {
+    var errors = [];
+    switch(this.obj['type']) {
+      case &quot;refcheck&quot;:
+        CiteTB.loadRefs();
+        for(var i=0; i&lt;CiteTB.mainRefList.length; i++) {
+          var e = this.obj.func(CiteTB.mainRefList[i]);
+          if (e) {
+            errors.push(e);
+          }
+        }
+        break;
+      case &quot;reflist&quot;:
+        CiteTB.loadRefs();
+        errors = this.obj.func(CiteTB.mainRefList);
+        break;
+      case &quot;search&quot;:
+        var func = this.obj.func
+        CiteTB.getPageText(function(text) {
+          errors = func(text);
+        });
+        break;
+    }
+    return errors;
+  }
+  
+  this.getRow = function() {
+    var row = $(&quot;&lt;li /&gt;&quot;);
+    var check = $(&quot;&lt;input type='checkbox' name='cite-err-test' /&gt;&quot;);
+    check.attr('value', this.obj.testname);
+    var label = $(&quot;&lt;label /&gt;&quot;).html(mw.usability.getMsg(this.obj.desc));
+    label.attr('for', this.obj.testname); 
+    row.append(check).append(' &amp;ndash; ').append(label);
+    return row;
+  }
+}
+$('head').trigger('reftoolbarbase');</text>
+      <sha1>f4us2vr8nk17semtl7d21ih1id391j3</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>MediaWiki:RefToolbar.js</title>
+    <ns>8</ns>
+    <id>30643992</id>
+    <revision>
+      <id>695731480</id>
+      <parentid>695731108</parentid>
+      <timestamp>2015-12-18T04:47:59Z</timestamp>
+      <contributor>
+        <username>Kaldari</username>
+        <id>59944</id>
+      </contributor>
+      <comment>check for empty array</comment>
+      <model>javascript</model>
+      <format>text/javascript</format>
+      <text xml:space="preserve" bytes="30819">/*jshint smarttabs:true, loopfunc:true,forin:false*/
+/*global mw, $, importScript */
+// TODO: make autodate an option in the CiteTemplate object, not a preference
+
+// Global object
+// TODO:
+// * Remove this once the page is moved to a module 'ext.gadget.refToolbarDialogs' depending on 'ext.gadget.refToolbarBase'
+if (typeof CiteTB === 'undefined') {
+  var CiteTB = {
+    &quot;Templates&quot; : {}, // All templates
+    &quot;Options&quot; : {}, // Global options
+    &quot;UserOptions&quot; : {}, // User options
+    &quot;DefaultOptions&quot; : {}, // Script defaults
+    &quot;ErrorChecks&quot; : {} // Error check functions
+  };
+}
+
+// Only execute on edit, unless it is a user JS/CSS page
+// TODO: Remove tests already done by [[MediaWiki:Gadget-refToolbar.js]]
+if (
+	( mw.config.get('wgAction') === 'edit' || mw.config.get('wgAction') === 'submit' ) &amp;&amp;
+	( ( mw.config.get('wgNamespaceNumber') !== 2 &amp;&amp; mw.config.get('wgNamespaceNumber') !== 4 ) ||
+	( mw.config.get('wgPageName').indexOf('.js') === -1 &amp;&amp; mw.config.get('wgPageName').indexOf('.css') === -1 ) )
+) {
+
+// TODO: Move this to [[MediaWiki:Gadget-refToolbarDialogs.css]] and add it to the definition of module 'ext.gadget.refToolbarDialogs'
+mw.util.addCSS(&quot;.cite-form-td {&quot;+
+&quot;height: 0 !important;&quot;+
+&quot;padding: 0.1em !important;&quot;+
+&quot;}&quot;);  
+
+// Default options, these mainly exist so the script won't break if a new option is added
+CiteTB.DefaultOptions = {
+  &quot;date format&quot; : &quot;&lt;year&gt;-&lt;zmonth&gt;-&lt;zdate&gt;&quot;,
+  &quot;autodate fields&quot; : [],
+  &quot;months&quot; : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  &quot;modal&quot; : true,
+  &quot;autoparse&quot; : false,
+  &quot;expandtemplates&quot;: false
+};
+
+// Get an option - user settings override global which override defaults
+CiteTB.getOption = function(opt) {
+  if (CiteTB.UserOptions[opt] !== undefined) {
+    return CiteTB.UserOptions[opt];
+  } else if (CiteTB.Options[opt] !== undefined) {
+    return CiteTB.Options[opt];
+  }
+  return CiteTB.DefaultOptions[opt];
+};
+
+CiteTB.init = function() {
+  /* Main stuff, build the actual toolbar structure
+   * 1. get the template list, make the dropdown list and set up the template dialog boxes
+   * 2. actually build the toolbar:
+   *    * A section for cites
+   *    ** dropdown for the templates (previously defined)
+   *    ** button for named refs with a dialog box
+   *    ** button for errorcheck
+   * 3. add the whole thing to the main toolbar
+  */
+
+  if (typeof $('div[rel=cites]')[0] !== 'undefined') { // Mystery IE bug workaround
+    return;
+  }
+  $('head').trigger('reftoolbarbase');
+  var $target = $('#wpTextbox1');
+  var temlist = {};
+  for (var t in CiteTB.Templates) {
+    var tem = CiteTB.Templates[t];
+    var sform = CiteTB.escStr(tem.shortform);
+    var actionobj = { 
+      type: 'dialog',
+      module: 'cite-dialog-'+sform
+    };
+    var dialogobj = {};
+    dialogobj['cite-dialog-'+sform] = {
+      resizeme: false,
+      titleMsg: 'cite-dialog-'+sform, 
+      id: 'citetoolbar-'+sform,
+      init: function() {}, 
+      html: tem.getInitial(), 
+      dialog: {
+        width:675,
+        open: function() { 
+          $(this).html(CiteTB.getOpenTemplate().getForm());
+          /** @param {jQuery.Event} e */
+          $('.cite-prev-parse').bind( 'click', function ( e ) {
+            e.preventDefault();
+            CiteTB.prevParseClick();
+          });
+        },
+        buttons: {
+          'cite-form-submit': function() {
+            var ref = CiteTB.getRef(false, true);
+            $(this).dialog( 'close' );
+            $.wikiEditor.modules.toolbar.fn.doAction( $(this).data( 'context' ), {
+              type: 'encapsulate',
+              options: {
+                post: ref
+              }
+            }, $(this) );
+          },
+          'cite-form-showhide': CiteTB.showHideExtra,
+          'cite-refpreview': function() {   
+            var ref = CiteTB.getRef(false, false);
+            var template = CiteTB.getOpenTemplate();
+            var div = $(&quot;#citetoolbar-&quot;+CiteTB.escStr(template.shortform));
+            div.find('.cite-preview-label').show();
+            div.find('.cite-ref-preview').text(ref).show();
+            if (CiteTB.getOption('autoparse')) {
+              CiteTB.prevParseClick();
+            } else {
+              div.find('.cite-prev-parse').show();
+              div.find('.cite-prev-parsed-label').hide();
+              div.find('.cite-preview-parsed').html('');
+            }         
+          },
+          'wikieditor-toolbar-tool-link-cancel': function() {
+            $(this).dialog( 'close' );
+          },
+          'cite-form-reset': function() {
+            CiteTB.resetForm();
+          }
+        }
+      } 
+    };
+    $target.wikiEditor('addDialog', dialogobj);
+    //if (!CiteTB.getOption('modal')) {
+      //$('#citetoolbar-'+sform).dialog('option', 'modal', false);
+    //}
+    temlist[sform] = {label: tem.templatename, action: actionobj };  
+  }
+
+  var refsection =  {
+    'sections': {
+      'cites': { 
+        type: 'toolbar', 
+        labelMsg: 'cite-section-label',
+        groups: { 
+          'template': {
+            tools: {
+              'template': {
+                type: 'select',
+                labelMsg: 'cite-template-list',
+                list: temlist
+              } 
+            }
+          },
+          'namedrefs': {
+            labelMsg: 'cite-named-refs-label',
+            tools: {
+              'nrefs': {
+                type: 'button',
+                action: {
+                  type: 'dialog',
+                  module: 'cite-toolbar-namedrefs'
+                },
+                icon: '//upload.wikimedia.org/wikipedia/commons/thumb/b/be/Nuvola_clipboard_lined.svg/22px-Nuvola_clipboard_lined.svg.png',
+                section: 'cites',
+                group: 'namedrefs',
+                labelMsg: 'cite-named-refs-button'
+              }
+            }
+          },
+          'errorcheck': {
+            labelMsg: 'cite-errorcheck-label',
+            tools: {
+              'echeck': {
+                type: 'button',
+                action: {
+                  type: 'dialog',
+                  module: 'cite-toolbar-errorcheck'           
+                },
+                icon: '//upload.wikimedia.org/wikipedia/commons/thumb/a/a3/Nuvola_apps_korganizer-NO.png/22px-Nuvola_apps_korganizer-NO.png',
+                section: 'cites',
+                group: 'errorcheck',
+                labelMsg: 'cite-errorcheck-button'
+              }
+            }
+          }
+        } 
+      } 
+    } 
+  };
+  
+  var defaultdialogs = { 
+    'cite-toolbar-errorcheck': {
+      titleMsg: 'cite-errorcheck-label',
+      id: 'citetoolbar-errorcheck',
+      resizeme: false,
+      init: function() {},
+      html: '&lt;div id=&quot;cite-namedref-loading&quot;&gt;'+
+        '&lt;img src=&quot;//upload.wikimedia.org/wikipedia/commons/4/42/Loading.gif&quot; /&gt;'+
+        '&amp;nbsp;'+mw.usability.getMsg('cite-loading')+'&lt;/div&gt;',
+      dialog: {
+        width:550,
+        open: function() { 
+          CiteTB.loadRefs();
+        },
+        buttons: {
+          'cite-errorcheck-submit': function() {
+            var errorchecks = $(&quot;input[name='cite-err-test']:checked&quot;);
+            var errors = [];
+            for (var i=0; i&lt;errorchecks.length; i++) {
+              errors = errors.concat(CiteTB.ErrorChecks[$(errorchecks[i]).val()].run());
+            }
+            CiteTB.displayErrors(errors);
+            $(this).dialog( 'close' );                      
+          },
+          'wikieditor-toolbar-tool-link-cancel': function() {
+            $(this).dialog( 'close' );
+          }
+        }
+      }
+    },
+    'cite-toolbar-namedrefs': {
+      titleMsg: 'cite-named-refs-title',
+      resizeme: false,
+      id: 'citetoolbar-namedrefs',
+      html: '&lt;div id=&quot;cite-namedref-loading&quot;&gt;'+
+        '&lt;img src=&quot;//upload.wikimedia.org/wikipedia/commons/4/42/Loading.gif&quot; /&gt;'+
+        '&amp;nbsp;'+mw.usability.getMsg('cite-loading')+'&lt;/div&gt;',
+      init: function() {},
+      dialog: {
+        width: 550,
+        open: function() { 
+          CiteTB.loadRefs();
+        },
+        buttons: {
+          'cite-form-submit': function() {
+            var refname = $(&quot;#cite-namedref-select&quot;).val();
+            if (refname === '') {
+              return;
+            }
+            $(this).dialog( 'close' );
+            $.wikiEditor.modules.toolbar.fn.doAction( $(this).data( 'context' ), {
+              type: 'encapsulate',
+              options: {
+                post: CiteTB.getNamedRef(refname, true)
+              }
+            }, $(this) );
+          },
+          'wikieditor-toolbar-tool-link-cancel': function() {
+            $(this).dialog( 'close' );
+          }                   
+        }
+      }      
+    }
+  };
+  
+  $target.wikiEditor('addDialog', defaultdialogs);
+  $('#citetoolbar-namedrefs').unbind('dialogopen');
+  if (!CiteTB.getOption('modal')) {
+    //$('#citetoolbar-namedrefs').dialog('option', 'modal', false);
+    //$('#citetoolbar-errorcheck').dialog('option', 'modal', false);
+    mw.util.addCSS(&quot;.ui-widget-overlay {&quot;+
+    &quot;display:none !important;&quot;+
+    &quot;}&quot;);  
+  }
+  $target.wikiEditor('addToToolbar', refsection);
+};
+
+// Load local data - messages, cite templates, etc.
+$(document).ready( function() {
+  switch( mw.config.get('wgUserLanguage') ) {
+    case 'de': // German
+      importScript('MediaWiki:RefToolbarMessages-de.js');
+      break;
+    default: // English
+      importScript('MediaWiki:RefToolbarMessages-en.js');
+  }
+});
+
+// Setup the main object
+CiteTB.mainRefList = [];
+CiteTB.refsLoaded = false;
+
+// REF FUNCTIONS
+// Actually assemble a ref from user input
+CiteTB.getRef = function(inneronly, forinsert) {
+  var i;
+  var template = CiteTB.getOpenTemplate();
+  var templatename = template.templatename;
+  var res = '';
+  var refobj = {'shorttag':false};
+  if (!inneronly) {
+    var group = $('#cite-'+CiteTB.escStr(template.shortform)+'-group').val();
+    var refname = $('#cite-'+CiteTB.escStr(template.shortform)+'-name').val();
+    res += '&lt;ref';
+    if (refname) {
+      refname = $.trim(refname);
+      res+=' name='+CiteTB.getQuotedString(refname);
+      refobj.refname = refname;
+    }
+    if (group) {
+      group = $.trim(group);
+      res+=' group='+CiteTB.getQuotedString(group);
+      refobj.refgroup = group;
+    }
+    res+='&gt;';
+  }
+  var content ='{{'+templatename;
+  for( g in template.incrementables ) {
+  	group = template.incrementables[g];
+  	for (i=1; i&lt;=group.val; i++) {
+		for (j=0; j&lt;group.fields.length; j++) {
+  			var fieldname = group.fields[j].field;
+  			var fieldid = fieldname.replace('&lt;N&gt;', i.toString());
+  			var field = $('#cite-'+CiteTB.escStr(template.shortform)+'-'+fieldid).val();
+  			if (field) {
+  				content+='|'+fieldid+'=';
+  				content+= $.trim(field);
+  			}
+  		}
+  	}
+  }
+  for( i=0; i&lt;template.basic.length; i++ ) {
+  	if (template.basic[i].increment_group) {
+  		continue;
+  	}
+    var fieldname = template.basic[i].field;
+    var field = $('#cite-'+CiteTB.escStr(template.shortform)+'-'+fieldname).val();
+    if (field) {
+      content+='|'+fieldname+'=';
+      content+= $.trim(field);
+    }
+  }
+  if ($('#cite-form-status').val() !== 'closed') {
+    for( i=0; i&lt;template.extra.length; i++ ) {
+      if (template.extra[i].increment_group) {
+        continue;
+      }
+      var fieldname = template.extra[i].field;
+      var field = $('#cite-'+CiteTB.escStr(template.shortform)+'-'+fieldname).val();
+      if (field) {
+        content+='|'+fieldname+'=';
+        content+= $.trim(field);
+      }
+    }
+  }
+  content+= '}}';
+  res+=content;
+  refobj.content = content;
+  if (!inneronly) {
+    res+= '&lt;/ref&gt;';
+  }
+  if (forinsert) {
+    CiteTB.mainRefList.push(refobj);
+  }
+  return res;
+};
+
+// Make a reference to a named ref
+CiteTB.getNamedRef = function(refname, forinsert) {
+  if (forinsert) {
+    CiteTB.mainRefList.push( {'shorttag':true, 'refname':refname} );
+  }
+  return '&lt;ref name='+CiteTB.getQuotedString(refname)+' /&gt;';  
+};
+
+// Function to load the ref list
+CiteTB.loadRefs = function() {
+  if (CiteTB.refsLoaded) {
+    return;
+  }
+  CiteTB.getPageText(CiteTB.loadRefsInternal);
+};
+
+// Function that actually loads the list from the page text
+CiteTB.loadRefsInternal = function(text) { 
+  // What this does:             extract first name/group                                     extract second name/group                                          shorttag   inner content
+  var refsregex = /&lt; *ref(?: +(name|group) *= *(?:&quot;([^&quot;]*?)&quot;|'([^']*?)'|([^ '&quot;\/\&gt;]*?)) *)? *(?: +(name|group) *= *(?:&quot;([^&quot;]*?)&quot;|'([^']*?)'|([^ '&quot;\/\&gt;]*?)) *)? *(?:\/ *&gt;|&gt;((?:.|\n)*?)&lt; *\/ *ref *&gt;)/gim;
+  // This should work regardless of the quoting used for names/groups and for linebreaks in the inner content  
+  while (true) {
+    var ref = refsregex.exec(text);
+    if (ref === null) {
+      break;
+    }
+    var refobj = {};
+    if (ref[9]) { // Content + short tag check
+      //alert('&quot;'+ref[9]+'&quot;');
+      refobj.content = ref[9]; 
+      refobj.shorttag = false;
+    } else {
+      refobj.shorttag = true;
+    }
+    if (ref[1] !== '') { // First name/group
+      if (ref[2]) {
+        refobj['ref'+ref[1]] = ref[2];
+      } else if (ref[3]) {
+        refobj['ref'+ref[1]] = ref[3];
+      } else {
+        refobj['ref'+ref[1]] = ref[4];
+      }
+    }
+    if (ref[5] !== '') { // Second name/group
+      if (ref[6]) {
+        refobj['ref'+ref[5]] = ref[6];
+      } else if (ref[7]) {
+        refobj['ref'+ref[5]] = ref[7];
+      } else {
+        refobj['ref'+ref[5]] = ref[8];
+      }
+    }
+    CiteTB.mainRefList.push(refobj);
+  }
+  CiteTB.refsLoaded = true;
+  CiteTB.setupErrorCheck();
+  CiteTB.setupNamedRefs();
+};
+
+// AJAX FUNCTIONS
+// Parse some wikitext and hand it off to a callback function
+CiteTB.parse = function(text, callback) {
+  $.post( mw.util.wikiScript( 'api' ),
+    {action:'parse', title:mw.config.get('wgPageName'), text:text, prop:'text', format:'json'},
+    function(data) {
+      var html = data.parse.text['*'];
+      callback(html);
+    },
+    'json'
+  );  
+};
+
+// Use the API to expand templates on some text
+CiteTB.expandtemplates = function(text, callback) {
+  $.post( mw.util.wikiScript( 'api' ),
+    {action:'expandtemplates', title:mw.config.get('wgPageName'), text:text, format:'json'},
+    function(data) {
+      var restext = data.expandtemplates['*'];
+      callback(restext);
+    },
+    'json'
+  );
+};
+
+// Function to get the page text
+CiteTB.getPageText = function(callback) {
+  var section = $(&quot;input[name='wpSection']&quot;).val();
+  if ( section !== '' ) {
+    var postdata = {action:'query', prop:'revisions', rvprop:'content', pageids:mw.config.get('wgArticleId'), format:'json'};
+    if (CiteTB.getOption('expandtemplates')) {
+      postdata.rvexpandtemplates = '1';
+    }
+    $.get( mw.util.wikiScript( 'api' ),
+      postdata,
+      function(data) {
+        var pagetext = data.query.pages[mw.config.get('wgArticleId').toString()].revisions[0]['*'];
+        callback(pagetext);
+      },
+      'json'
+    );
+  } else {
+    if (CiteTB.getOption('expandtemplates')) {
+      CiteTB.expandtemplates($('#wpTextbox1').wikiEditor('getContents').text(), callback);
+    } else {
+      callback($('#wpTextbox1').wikiEditor('getContents').text());
+    }
+  }
+};
+
+// Autofill a template from an ID (ISBN, DOI, PMID, URL)
+CiteTB.initAutofill = function() {
+  var elemid = $(this).attr('id');
+  var res = /^cite\-auto\-(.*?)\-(.*)\-(.*)$/.exec(elemid);
+  var tem = res[1];
+  var field = res[2];
+  var autotype = res[3];
+  var id = $('#cite-'+tem+'-'+field).val();
+  if (!id) {
+    return false;
+  }
+  var url = '//tools.wmflabs.org/reftoolbar/lookup.php?';
+  url+=autotype+'='+encodeURIComponent(id);
+  url+='&amp;template='+encodeURIComponent(tem);
+  var s = document.createElement('script');
+  s.setAttribute('src', url);
+  s.setAttribute('type', 'text/javascript');
+  document.getElementsByTagName('head')[0].appendChild(s);
+  return false;
+};
+
+// Callback for autofill
+//TODO: Autofill the URL, at least for DOI
+CiteTB.autoFill = function(data, template, type) {
+  var cl = 'cite-'+template+'-';
+  var i,j, coauthors;
+  $('.'+cl+'title').val(data.title);
+  // Fill in authors
+  if (data.authors &amp;&amp; data.authors.length &gt; 0) {
+	  if ($('.'+cl+'last-incr-1').length != 0) {
+		var classes = $('.'+cl+'last-incr-1').eq(0).attr('class').split(/\s+/);
+		var group = false;
+		var patt = /cite-[^-]*?-incr-(.*)/
+		for (var c=0; c&lt;classes.length; c++) {
+			if (patt.exec(classes[c])) {
+				group = patt.exec(classes[c])[1];
+				break;
+			}
+		}
+		$('.'+cl+'last-incr-1').val(data.authors[0][0])
+		$('.'+cl+'first-incr-1').val(data.authors[0][1])
+		elemid = '#cite-incr-'+template+'-'+group;
+		for (var i=2; i&lt;data.authors.length+1; i++) {
+			$(elemid).click();
+			$('.'+cl+'last-incr-'+i.toString()).val(data.authors[i-1][0])
+			$('.'+cl+'first-incr-'+i.toString()).val(data.authors[i-1][1])
+		}
+	  } else if ($('.'+cl+'author-incr-1').length != 0) {
+		var classes = $('.'+cl+'author-incr-1').eq(0).attr('class').split(/\s+/);
+		var group = false;
+		var patt = /cite-[^-]*?-incr-(.*)/
+		for (var c=0; c&lt;classes.length; c++) {
+			if (patt.exec(classes[c])) {
+				group = patt.exec(classes[c])[1];
+				break;
+			}
+		}
+		$('.'+cl+'author-incr-1').val(data.authors[0].join(', '))
+		elemid = '#cite-incr-'+template+'-'+group;
+		for (var i=2; i&lt;data.authors.length+1; i++) {
+			$(elemid).click();
+			$('.'+cl+'author-incr-'+i.toString()).val(data.authors[i-1].join(', '))
+		}
+	  } else if ($('.'+cl+'last1').length != 0) {
+		for(i=0; data.authors &amp;&amp; i&lt;data.authors.length; i++) {
+		  if ($('.'+cl+'last'+(i+1)).length) {
+			 $('.'+cl+'last'+(i+1)).val(data.authors[i][0]);
+			 $('.'+cl+'first'+(i+1)).val(data.authors[i][1]);
+		  } else {
+			coauthors = [];
+			for(j=i; j&lt;data.authors.length; j++) {
+			  coauthors.push(data.authors[j].join(', '));
+			}
+			$('.'+cl+'coauthors').val(coauthors.join('; '));
+			break;
+		  }
+		}
+	  } else if($('.'+cl+'author1').length !== 0) {
+		for(i=0; data.authors &amp;&amp; i&lt;data.authors.length; i++) {
+		  if ($('.'+cl+'author'+(i+1)).length) {
+			 $('.'+cl+'author'+(i+1)).val(data.authors[i].join(', '));
+		  } else {
+			coauthors = [];
+			for(j=i; j&lt;data.authors.length; j++) {
+			  coauthors.push(data.authors[j].join(', '));
+			}
+			$('.'+cl+'coauthors').val(coauthors.join('; '));
+			break;
+		  }
+		}
+	  } else {
+		var authors = [];
+		for(i=0; data.authors &amp;&amp; i&lt;data.authors.length; i++) {
+		  authors.push(data.authors[i].join(', '));
+		}
+		$('.'+cl+'authors').val(authors.join('; '));
+	  }
+  }
+
+  if (type === 'pmid' || type === 'doi') {
+    if (data.date &amp;&amp; (data.fulldate || !$('.'+cl+'month').length)) {
+      var DT = new Date(data.date);
+      var useday = /\d{4}-\d{2}-\d{2}/.test(data.date);
+      var usemonth = /\d{4}-\d{2}/.test(data.date);
+      $('.'+cl+'date').val(CiteTB.formatDate(DT, useday, usemonth));
+    } else if (!data.fulldate &amp;&amp; $('.'+cl+'month').length &amp;&amp; $('.'+cl+'year').length) {
+      if (data.month) { // lookup.php sets month to false if it isn't provided
+        $('.'+cl+'month').val( CiteTB.getOption('months')[parseInt(data.month)-1] );
+      }
+      $('.'+cl+'year').val(data.year);
+    } else {
+      $('.'+cl+'date').val(data.date);
+    }
+    $('.'+cl+'journal').val(data.journal);
+    $('.'+cl+'volume').val(data.volume);
+    $('.'+cl+'issue').val(data.issue);
+    $('.'+cl+'pages').val(data.pages);
+  } else if (type === 'isbn') {
+    $('.'+cl+'publisher').val(data.publisher);
+    $('.'+cl+'location').val(data.location);
+    $('.'+cl+'year').val(data.year);
+    $('.'+cl+'edition').val(data.edition);
+  } else if (type === 'url') {
+    if (data.date) {
+  	  var DT = new Date(data.date);
+      var useday = /\d{4}-\d{2}-\d{2}/.test(data.date);
+      var usemonth = /\d{4}-\d{2}/.test(data.date);
+      $('.'+cl+'date').val(CiteTB.formatDate(DT, useday, usemonth));
+    }
+    $('.'+cl+'journal').val(data.journal);
+    $('.'+cl+'volume').val(data.volume);
+    $('.'+cl+'issue').val(data.issue);
+    $('.'+cl+'pages').val(data.pages);
+    $('.'+cl+'publisher').val(data.publisher);
+    $('.'+cl+'edition').val(data.edition);
+    $('.'+cl+'isbn').val(data.isbn);
+    $('.'+cl+'issn').val(data.issn);
+    $('.'+cl+'doi').val(data.doi);
+    $('.'+cl+'language').val(data.language);
+    $('.'+cl+'chapter').val(data.chapter);
+  }
+};
+
+// FORM DIALOG FUNCTIONS
+// Add new incrementable fields
+CiteTB.incrementFields = function() {
+	template = CiteTB.getOpenTemplate();
+	var currentrow = $(this).parents('tr')[0];
+	$(this).prev().css('width', '100%')
+	$(this).detach();
+	var elemid = $(this).attr('id');
+	var res = /^cite\-incr\-(.*?)\-(.*)$/.exec(elemid);
+	group = res[2];
+	increments = template.incrementables[group];
+	fields = increments.fields;
+	incrval = increments.val+1;
+	template.incrementables[group].val += 1;
+	trs = template.makeFormInner(fields, false);
+	trs.reverse();
+	for (var i=0; i&lt;trs.length; i++) {
+		$(currentrow).after(trs[i]);
+	}
+};
+
+// fill the accessdate param with the current date
+CiteTB.fillAccessdate = function() {
+  var elemid = $(this).attr('id');
+  var res = /^cite\-date\-(.*?)\-(.*)$/.exec(elemid);
+  var id = res[1];
+  var field = res[2];
+  var DT = new Date();
+  var datestr = CiteTB.formatDate(DT);
+  $('#cite-'+id+'-'+field).val(datestr);
+  return false;
+};
+
+CiteTB.formatDate = function(DT, useday, usemonth) {
+  if (typeof useday == &quot;undefined&quot;) {
+    useday = true;	
+  }
+  if (typeof usemonth == &quot;undefined&quot;) {
+    usemonth = true;	
+  }
+  var datestr = CiteTB.getOption('date format');
+  var zmonth = '';
+  var month = DT.getUTCMonth()+1;
+  if (month &lt; 10) {
+    zmonth = &quot;0&quot;+month.toString();
+  } else {
+    zmonth = month.toString();
+  }
+  month = month.toString();
+  var zdate = '';
+  var date = DT.getUTCDate();
+  if (date &lt; 10) {
+    zdate = &quot;0&quot;+date.toString();
+  } else {
+    zdate = date.toString();
+  }
+  date = date.toString();
+  if (useday) {
+    datestr = datestr.replace('&lt;date&gt;', date);
+    datestr = datestr.replace('&lt;zdate&gt;', zdate);
+  } else {
+    datestr = datestr.replace('&lt;date&gt;', '');
+    datestr = datestr.replace('&lt;zdate&gt;', '');
+  }
+  if (usemonth) {
+    datestr = datestr.replace('&lt;month&gt;', month);
+    datestr = datestr.replace('&lt;zmonth&gt;', zmonth);
+    datestr = datestr.replace('&lt;monthname&gt;', CiteTB.getOption('months')[DT.getUTCMonth()]);
+  } else {
+    datestr = datestr.replace('&lt;month&gt;', '');
+    datestr = datestr.replace('&lt;zmonth&gt;', '');
+    datestr = datestr.replace('&lt;monthname&gt;', '');
+  }  
+  datestr = datestr.replace('&lt;year&gt;', DT.getUTCFullYear().toString());
+  return datestr.replace(/^[ \/\-\,\.]*(.*?)[ \/\-\,\.]*$/g, &quot;$1&quot;); // Cleanup any dangling spaces or connectors that might result from omitting date/month
+};
+
+// Function called after the ref list is loaded, to actually set the contents of the named ref dialog
+// Until the list is loaded, its just a &quot;Loading&quot; placeholder
+CiteTB.setupNamedRefs = function() {
+  var names = [], i;
+  for( i=0; i&lt;CiteTB.mainRefList.length; i++) {
+    if (!CiteTB.mainRefList[i].shorttag &amp;&amp; CiteTB.mainRefList[i].refname) {
+      names.push(CiteTB.mainRefList[i]);
+    }
+  }
+  var stuff = $('&lt;div&gt;');
+  $('#citetoolbar-namedrefs').html( stuff );
+  if (names.length === 0) {
+    stuff.html(mw.usability.getMsg('cite-no-namedrefs'));
+  } else {
+    stuff.html(mw.usability.getMsg('cite-namedrefs-intro'));
+    var select = $('&lt;select id=&quot;cite-namedref-select&quot;&gt;');
+    select.append($('&lt;option value=&quot;&quot; /&gt;').text(mw.usability.getMsg('cite-named-refs-dropdown')));
+    for(i=0; i&lt;names.length; i++) {
+      select.append($('&lt;option /&gt;').text(names[i].refname));
+    }
+    stuff.after(select);
+    select.before('&lt;br /&gt;');      
+    var prevlabel = $('&lt;div id=&quot;cite-nref-preview-label&quot; style=&quot;display:none;&quot; /&gt;').html(mw.usability.getMsg('cite-raw-preview'));
+    select.after(prevlabel);
+    prevlabel.before(&quot;&lt;br /&gt;&lt;br /&gt;&quot;);
+    prevlabel.after('&lt;div id=&quot;cite-namedref-preview&quot; style=&quot;padding:0.5em; font-size:110%&quot; /&gt;');
+    var parselabel = $('&lt;span id=&quot;cite-parsed-label&quot; style=&quot;display:none;&quot; /&gt;').html(mw.usability.getMsg('cite-parsed-label'));
+    $('#cite-namedref-preview').after(parselabel);
+    parselabel.after('&lt;div id=&quot;cite-namedref-parsed&quot; style=&quot;padding-bottom:0.5em; font-size:110%&quot; /&gt;');
+    var link = $('&lt;a href=&quot;#&quot; id=&quot;cite-nref-parse&quot; style=&quot;margin:0 1em 0 1em; display:none; color:darkblue&quot; /&gt;');
+    link.html(mw.usability.getMsg('cite-form-parse'));
+    $('#cite-namedref-parsed').after(link);
+    
+    $(&quot;#cite-namedref-select&quot;).bind( 'change', CiteTB.namedRefSelectClick);
+    $('#cite-nref-parse').bind( 'click', CiteTB.nrefParseClick);
+  }      
+};
+
+// Function to get the errorcheck form HTML
+CiteTB.setupErrorCheck = function() {
+  var form = $('&lt;div id=&quot;cite-errorcheck-heading&quot; /&gt;').html(mw.usability.getMsg('cite-errorcheck-heading'));
+  var ul = $(&quot;&lt;ul id='cite-errcheck-list' /&gt;&quot;);
+  var test;
+  for (var t in CiteTB.ErrorChecks) {
+    test = CiteTB.ErrorChecks[t];
+    ul.append(test.getRow());
+  }
+  form.append(ul);
+  $('#citetoolbar-errorcheck').html(form);
+};
+
+// Callback function for parsed preview
+CiteTB.fillNrefPreview = function(parsed) {
+  $('#cite-parsed-label').show();
+  $('#cite-namedref-parsed').html(parsed);
+};
+
+// Click handler for the named-ref parsed preview
+CiteTB.nrefParseClick = function() {
+  var choice = $(&quot;#cite-namedref-select&quot;).val();
+  if (choice === '') {
+    $('#cite-parsed-label').hide();
+    $('#cite-namedref-parsed').text('');
+    return false;
+  }
+  $('#cite-nref-parse').hide();
+  for( var i=0; i&lt;CiteTB.mainRefList.length; i++) {
+    if (!CiteTB.mainRefList[i].shorttag &amp;&amp; CiteTB.mainRefList[i].refname == choice) {
+      CiteTB.parse(CiteTB.mainRefList[i].content, CiteTB.fillNrefPreview);
+      return false;
+    }
+  }  
+};
+
+// Click handler for the named-ref dropdown
+CiteTB.lastnamedrefchoice = '';
+CiteTB.namedRefSelectClick = function() {
+  var choice = $(&quot;#cite-namedref-select&quot;).val();
+  if (CiteTB.lastnamedrefchoice == choice) {
+    return;
+  }
+  CiteTB.lastnamedrefchoice = choice;
+  $('#cite-parsed-label').hide();
+  $('#cite-namedref-parsed').text('');
+  if (choice === '') {
+    $('#cite-nref-preview-label').hide();
+    $('#cite-namedref-preview').text('');
+    $('#cite-nref-parse').hide();
+    return;
+  }
+  for( var i=0; i&lt;CiteTB.mainRefList.length; i++) {
+    if (!CiteTB.mainRefList[i].shorttag &amp;&amp; CiteTB.mainRefList[i].refname == choice) {
+      $('#cite-nref-preview-label').show();
+      $('#cite-namedref-preview').text(CiteTB.mainRefList[i].content);
+      if (CiteTB.getOption('autoparse')) {
+        CiteTB.nrefParseClick();
+      } else {
+        $('#cite-nref-parse').show();
+      }
+    }
+  }
+};
+
+// callback function for parsed preview
+CiteTB.fillTemplatePreview = function(text) {
+  var template = CiteTB.getOpenTemplate();
+  var div = $(&quot;#citetoolbar-&quot;+CiteTB.escStr(template.shortform));
+  div.find('.cite-prev-parsed-label').show();
+  div.find('.cite-preview-parsed').html(text);
+};
+
+// Click handler for template parsed preview
+CiteTB.prevParseClick = function() {
+  var ref = CiteTB.getRef(true, false);
+  var template = CiteTB.getOpenTemplate();
+  var div = $(&quot;#citetoolbar-&quot;+CiteTB.escStr(template.shortform));
+  div.find('.cite-prev-parse').hide();
+  CiteTB.parse(ref, CiteTB.fillTemplatePreview);
+};
+
+// Show/hide the extra fields in the dialog box
+CiteTB.showHideExtra = function() {
+  var template = CiteTB.getOpenTemplate();
+  var div = $(&quot;#citetoolbar-&quot;+CiteTB.escStr(template.shortform));
+  var setting = div.find(&quot;.cite-form-status&quot;).val();
+  if ( setting === 'closed' ) {
+    div.find(&quot;.cite-form-status&quot;).val('open');
+    div.find('.cite-extra-fields').show(1, function() {
+      // jQuery adds &quot;display:block&quot;, which screws things up
+      div.find('.cite-extra-fields').attr('style', 'width:100%; background-color:transparent;'); 
+    });
+  } else {
+    div.find(&quot;.cite-form-status&quot;).val('closed');
+    div.find('.cite-extra-fields').hide();
+  } 
+};
+
+// Resets form fields and previews
+// Resets form fields and previews
+CiteTB.resetForm = function() {
+  var template = CiteTB.getOpenTemplate();
+  var div = $(&quot;#citetoolbar-&quot;+CiteTB.escStr(template.shortform));
+  div.html(template.getForm());
+};
+
+// STRING UTILITY FUNCTIONS
+// Returns a string quoted as necessary for name/group attributes
+CiteTB.getQuotedString = function(s) {
+  var sp = /\s/.test(s); // spaces
+  var sq = /\'/.test(s); // single quotes
+  var dq = /\&quot;/.test(s); // double quotes
+  if (!sp &amp;&amp; !sq &amp;&amp; !dq) { // No quotes necessary
+    return s;
+  } else if (!dq) { // Can use double quotes
+    return '&quot;'+s+'&quot;';
+  } else if (!sq) { // Can use single quotes
+    return &quot;'&quot;+s+&quot;'&quot;;
+  } else { // Has double and single quotes
+    s = s.replace(/\&quot;/g, '\&quot;');
+    return '&quot;'+s+'&quot;';
+  }
+};
+
+// Fix up strings for output - capitalize first char, replace underscores with spaces
+CiteTB.fixStr = function(s) {
+  s = s.slice(0,1).toUpperCase() + s.slice(1);
+  s = s.replace('_',' ');
+  return s;
+};
+
+// Escape spaces and quotes for use in HTML classes/ids
+CiteTB.escStr = function(s) {
+  return s.replace(' ', '-').replace(&quot;'&quot;, &quot;\'&quot;).replace('&quot;', '\&quot;');
+};
+
+// MISC FUNCTIONS
+// Determine which template form is open, and get the template object for it
+CiteTB.getOpenTemplate = function() {
+  var dialogs = $(&quot;.ui-dialog-content.ui-widget-content:visible&quot;);
+  var templatename = $(dialogs[0]).find(&quot;.cite-template&quot;).val();
+  return CiteTB.Templates[templatename];
+};
+
+// Display the report for the error checks
+CiteTB.displayErrors = function(errors) {
+  $('#cite-err-report').remove();
+  var table = $('&lt;table id=&quot;cite-err-report&quot; style=&quot;width:100%; border:1px solid #A9A9A9; background-color:#FFEFD5; padding:0.25em; margin-top:0.5em&quot; /&gt;');
+  $('#editpage-copywarn').before(table);
+  var tr;
+  var tr1 = $('&lt;tr style=&quot;width:100%&quot; /&gt;');
+  var th1 = $('&lt;th style=&quot;width:60%; font-size:110%&quot; /&gt;').html(mw.usability.getMsg('cite-err-report-heading'));
+  var th2 = $('&lt;th style=&quot;text-align:right; width:40%&quot; /&gt;');
+  var im = $('&lt;img /&gt;').attr('src', '//upload.wikimedia.org/wikipedia/commons/thumb/5/55/Gtk-stop.svg/20px-Gtk-stop.svg.png');
+  im.attr('alt', mw.usability.getMsg('cite-err-report-close')).attr('title', mw.usability.getMsg('cite-err-report-close'));
+  var ad = $('&lt;a id=&quot;cite-err-check-close&quot; /&gt;').attr('href', '#');
+  ad.append(im);
+  th2.append(ad);
+  tr1.append(th1).append(th2);
+  table.append(tr1);
+  $('#cite-err-check-close').bind('click', function() {  $('#cite-err-report').remove(); });
+  if (errors.length === 0) {
+    tr = $('&lt;tr style=&quot;width:100%;&quot; /&gt;');
+    var td = $('&lt;td style=&quot;text-align:center; margin:1.5px;&quot; /&gt;').html(mw.usability.getMsg('cite-err-report-empty'));
+    tr.append(td);
+    table.append(tr);
+    
+    return;
+  }
+  for(var e in errors) {
+    var err = errors[e];
+    tr = $('&lt;tr style=&quot;width:100%;&quot; /&gt;');
+    var td1 = $('&lt;td style=&quot;border: 1px solid black; margin:1.5px; width:60%&quot; /&gt;').html(err.err);
+    var td2 = $('&lt;td style=&quot;border: 1px solid black; margin:1.5px; width:40%&quot; /&gt;').html(mw.usability.getMsg(err.msg));
+    tr.append(td1).append(td2);
+    table.append(tr);
+  }
+};
+   
+} // End of code loaded only on edit</text>
+      <sha1>m427rzg9c1vanrgwm9jz1dl2kbmpkg4</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>MediaWiki:RefToolbarConfig.js</title>
+    <ns>8</ns>
+    <id>30644032</id>
+    <revision>
+      <id>695089025</id>
+      <parentid>690202938</parentid>
+      <timestamp>2015-12-13T18:19:52Z</timestamp>
+      <contributor>
+        <username>Kaldari</username>
+        <id>59944</id>
+      </contributor>
+      <comment>adding URL lookup</comment>
+      <model>javascript</model>
+      <format>text/javascript</format>
+      <text xml:space="preserve" bytes="9077">/* Sitewide options for the the Cite toolbar button:
+* All options should be specified
+*
+* &quot;date format&quot; sets the date format used for the function to insert the current date
+* Current available options:
+* date - the day of the month
+* zdate - day of the month, zero padded to 2 digits
+* monthname - The month name
+* month - The numberic month (1-12)
+* zmonth - numeric month, zero padded to 2 digits
+* year - The full year (4 digits)
+*
+* &quot;autodate fields&quot; is a list of template fields that should have a button to insert the current date
+* 
+* &quot;months&quot; is a list of localized month names
+*
+* &quot;modal&quot; - if true, the dialogs will be modal windows, blocking access to the rest of the window.
+* See http://en.wikipedia.org/wiki/Modal_window
+* All dialogs in the toolbar are modal by default
+*
+* &quot;autoparse&quot; - if true, previewing a ref will automatically trigger a preview of the parsed wikitext.
+* It is not recommended to set this to true as a global setting as it may slow the script down for
+* people with slow connections.
+*
+* &quot;expandtemplates&quot; - if true, templates and parser functions will be expanded when getting page text
+* (templates inside of ref tags will not be expanded). This will allow references inside of templates or
+* references using {{#tag:ref}} to be listed in the named refs dialog and searched by error checks.
+* This may slow loading the named refs and error check dialogs.
+*/
+
+CiteTB.Options = {
+&quot;date format&quot; : &quot;&lt;date&gt; &lt;monthname&gt; &lt;year&gt;&quot;,
+&quot;autodate fields&quot; : ['accessdate'],
+&quot;months&quot; : ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+&quot;modal&quot; : true,
+&quot;autoparse&quot; : true,
+&quot;expandtemplates&quot; : false
+};
+
+// Cite template definitions
+new citeTemplate('cite web', 'web',
+[ // Basic fields
+{&quot;field&quot;: &quot;last&lt;N&gt;&quot;, &quot;autofillprop&quot;:&quot;last-incr&quot;, 'increment_group':'author'},
+{&quot;field&quot;: &quot;first&lt;N&gt;&quot;, &quot;autofillprop&quot;:&quot;first-incr&quot;, 'increment_group':'author', 'increment_button':true}, 
+{&quot;field&quot;: &quot;title&quot;, &quot;autofillprop&quot;:&quot;title&quot;},
+{&quot;field&quot;: &quot;url&quot;, &quot;autofillid&quot;:&quot;url&quot;},
+{&quot;field&quot;: &quot;website&quot;, &quot;autofillprop&quot;:&quot;journal&quot;},
+{&quot;field&quot;: &quot;publisher&quot;, &quot;autofillprop&quot;:&quot;publisher&quot;},
+{&quot;field&quot;: &quot;accessdate&quot;},
+{&quot;field&quot;: &quot;ref&quot;, &quot;tooltip&quot;:&quot;cite-ref-tooltip&quot;}
+],
+[ // Expanded fields
+{&quot;field&quot;: &quot;author&lt;N&gt;&quot;, 'increment_group':'author_alt', 'increment_button':true},
+{&quot;field&quot;: &quot;authorlink&lt;N&gt;&quot;, &quot;tooltip&quot;:&quot;cite-authorlink-tooltip&quot;, 'increment_group':'authorlink', 'increment_button':true},
+{&quot;field&quot;: &quot;archiveurl&quot;},
+{&quot;field&quot;: &quot;archivedate&quot;},
+{&quot;field&quot;: &quot;location&quot;},
+{&quot;field&quot;: &quot;page&quot;, &quot;tooltip&quot;:&quot;cite-page-tooltip&quot;},
+{&quot;field&quot;: &quot;pages&quot;, &quot;autofillprop&quot;:&quot;pages&quot;, &quot;tooltip&quot;:&quot;cite-pages-tooltip&quot;},
+{&quot;field&quot;: &quot;language&quot;, &quot;autofillprop&quot;:&quot;language&quot;},
+{&quot;field&quot;: &quot;format&quot;},
+{&quot;field&quot;: &quot;doi&quot;, &quot;autofillid&quot;:&quot;doi&quot;, &quot;autofillprop&quot;:&quot;doi&quot;},
+{&quot;field&quot;: &quot;date&quot;, &quot;autofillprop&quot;:&quot;date&quot;},
+{&quot;field&quot;: &quot;quote&quot;}
+]);
+
+new citeTemplate('cite news', 'news',
+[ // Basic fields
+{&quot;field&quot;: &quot;last&lt;N&gt;&quot;, &quot;autofillprop&quot;:&quot;last-incr&quot;, 'increment_group':'author'},
+{&quot;field&quot;: &quot;first&lt;N&gt;&quot;, &quot;autofillprop&quot;:&quot;first-incr&quot;, 'increment_group':'author', 'increment_button':true}, 
+{&quot;field&quot;: &quot;title&quot;, &quot;autofillprop&quot;:&quot;title&quot;},
+{&quot;field&quot;: &quot;url&quot;, &quot;autofillid&quot;:&quot;url&quot;},
+{&quot;field&quot;: &quot;accessdate&quot;},
+{&quot;field&quot;: &quot;work&quot;, &quot;tooltip&quot;:&quot;cite-work-tooltip&quot;, &quot;autofillprop&quot;:&quot;journal&quot;},
+{&quot;field&quot;: &quot;agency&quot;},
+{&quot;field&quot;: &quot;issue&quot;},
+{&quot;field&quot;: &quot;publisher&quot;, &quot;autofillprop&quot;:&quot;publisher&quot;},
+{&quot;field&quot;: &quot;date&quot;, &quot;autofillprop&quot;:&quot;date&quot;},
+{&quot;field&quot;: &quot;ref&quot;, &quot;tooltip&quot;:&quot;cite-ref-tooltip&quot;}
+],
+[ // Expanded fields
+{&quot;field&quot;: &quot;author&lt;N&gt;&quot;, 'increment_group':'author_alt', 'increment_button':true},
+{&quot;field&quot;: &quot;authorlink&lt;N&gt;&quot;, &quot;tooltip&quot;:&quot;cite-authorlink-tooltip&quot;, 'increment_group':'authorlink', 'increment_button':true},
+{&quot;field&quot;: &quot;archiveurl&quot;},
+{&quot;field&quot;: &quot;archivedate&quot;},
+{&quot;field&quot;: &quot;location&quot;},
+{&quot;field&quot;: &quot;page&quot;, &quot;tooltip&quot;:&quot;cite-page-tooltip&quot;},
+{&quot;field&quot;: &quot;pages&quot;, &quot;autofillprop&quot;:&quot;pages&quot;, &quot;tooltip&quot;:&quot;cite-pages-tooltip&quot;},
+{&quot;field&quot;: &quot;language&quot;, &quot;autofillprop&quot;:&quot;language&quot;},
+{&quot;field&quot;: &quot;format&quot;},
+{&quot;field&quot;: &quot;doi&quot;, &quot;autofillid&quot;:&quot;doi&quot;, &quot;autofillprop&quot;:&quot;doi&quot;},
+{&quot;field&quot;: &quot;quote&quot;}
+]);
+
+new citeTemplate('cite book', 'book',
+[ // Basic fields
+{&quot;field&quot;: &quot;last&lt;N&gt;&quot;, &quot;autofillprop&quot;:&quot;last-incr&quot;, 'increment_group':'author'},
+{&quot;field&quot;: &quot;first&lt;N&gt;&quot;, &quot;autofillprop&quot;:&quot;first-incr&quot;, 'increment_group':'author', 'increment_button':true}, 
+{&quot;field&quot;: &quot;title&quot;, &quot;autofillprop&quot;:&quot;title&quot;},
+{&quot;field&quot;: &quot;date&quot;, &quot;autofillprop&quot;:&quot;year&quot;},
+{&quot;field&quot;: &quot;publisher&quot;, &quot;autofillprop&quot;:&quot;publisher&quot;},
+{&quot;field&quot;: &quot;location&quot;, &quot;autofillprop&quot;:&quot;location&quot;},
+{&quot;field&quot;: &quot;isbn&quot;, &quot;autofillid&quot;:&quot;isbn&quot;, &quot;autofillprop&quot;:&quot;isbn&quot;},
+{&quot;field&quot;: &quot;page&quot;, &quot;tooltip&quot;:&quot;cite-page-tooltip&quot;},
+{&quot;field&quot;: &quot;pages&quot;, &quot;autofillprop&quot;:&quot;pages&quot;, &quot;tooltip&quot;:&quot;cite-pages-tooltip&quot;},
+{&quot;field&quot;: &quot;edition&quot;, &quot;autofillprop&quot;:&quot;edition&quot;},
+{&quot;field&quot;: &quot;url&quot;, &quot;autofillid&quot;:&quot;url&quot;},
+{&quot;field&quot;: &quot;accessdate&quot;},
+{&quot;field&quot;: &quot;ref&quot;, &quot;tooltip&quot;:&quot;cite-ref-tooltip&quot;}
+
+],
+[ // Expanded fields
+{&quot;field&quot;: &quot;author&lt;N&gt;&quot;, 'increment_group':'author_alt', 'increment_button':true},
+{&quot;field&quot;: &quot;authorlink&lt;N&gt;&quot;, &quot;tooltip&quot;:&quot;cite-authorlink-tooltip&quot;, 'increment_group':'authorlink', 'increment_button':true},
+{&quot;field&quot;: &quot;editor&lt;N&gt;-last&quot;, &quot;increment_group&quot;:&quot;editor&quot;},
+{&quot;field&quot;: &quot;editor&lt;N&gt;-first&quot;, &quot;increment_group&quot;:&quot;editor&quot;, &quot;increment_button&quot;:true},
+{&quot;field&quot;: &quot;editor&lt;N&gt;-link&quot;, 'increment_group':'editorlink', 'increment_button':true},
+{&quot;field&quot;: &quot;archiveurl&quot;},
+{&quot;field&quot;: &quot;archivedate&quot;},
+{&quot;field&quot;: &quot;language&quot;, &quot;autofillprop&quot;:&quot;language&quot;},
+{&quot;field&quot;: &quot;format&quot;},
+{&quot;field&quot;: &quot;chapter&quot;, &quot;autofillprop&quot;:&quot;chapter&quot;},
+{&quot;field&quot;: &quot;quote&quot;}
+]);
+
+new citeTemplate('cite journal', 'journal',
+[ // Basic fields
+{&quot;field&quot;: &quot;last&lt;N&gt;&quot;, &quot;autofillprop&quot;:&quot;last-incr&quot;, 'increment_group':'author'},
+{&quot;field&quot;: &quot;first&lt;N&gt;&quot;, &quot;autofillprop&quot;:&quot;first-incr&quot;, 'increment_group':'author', 'increment_button':true}, 
+{&quot;field&quot;: &quot;title&quot;, &quot;autofillprop&quot;:&quot;title&quot;},
+{&quot;field&quot;: &quot;journal&quot;, &quot;autofillprop&quot;:&quot;journal&quot;},
+{&quot;field&quot;: &quot;date&quot;, &quot;autofillprop&quot;:&quot;date&quot;},
+{&quot;field&quot;: &quot;volume&quot;, &quot;autofillprop&quot;:&quot;volume&quot;},
+{&quot;field&quot;: &quot;issue&quot;, &quot;autofillprop&quot;:&quot;issue&quot;},
+{&quot;field&quot;: &quot;page&quot;, &quot;tooltip&quot;:&quot;cite-page-tooltip&quot;},
+{&quot;field&quot;: &quot;pages&quot;, &quot;autofillprop&quot;:&quot;pages&quot;, &quot;tooltip&quot;:&quot;cite-pages-tooltip&quot;},
+{&quot;field&quot;: &quot;doi&quot;, &quot;autofillid&quot;:&quot;doi&quot;, &quot;autofillprop&quot;:&quot;doi&quot;},
+{&quot;field&quot;: &quot;pmid&quot;, &quot;autofillid&quot;:&quot;pmid&quot;},
+{&quot;field&quot;: &quot;url&quot;, &quot;autofillid&quot;:&quot;url&quot;},
+{&quot;field&quot;: &quot;accessdate&quot;},
+{&quot;field&quot;: &quot;ref&quot;, &quot;tooltip&quot;:&quot;cite-ref-tooltip&quot;},
+],
+[ // Expanded fields
+{&quot;field&quot;: &quot;author&lt;N&gt;&quot;, 'increment_group':'author_alt', 'increment_button':true},
+{&quot;field&quot;: &quot;authorlink&lt;N&gt;&quot;, &quot;tooltip&quot;:&quot;cite-authorlink-tooltip&quot;, 'increment_group':'authorlink', 'increment_button':true},
+{&quot;field&quot;: &quot;editor&lt;N&gt;-last&quot;, &quot;increment_group&quot;:&quot;editor&quot;},
+{&quot;field&quot;: &quot;editor&lt;N&gt;-first&quot;, &quot;increment_group&quot;:&quot;editor&quot;, &quot;increment_button&quot;:true},
+{&quot;field&quot;: &quot;editor&lt;N&gt;-link&quot;, 'increment_group':'editorlink', 'increment_button':true},
+{&quot;field&quot;: &quot;series&quot;},
+{&quot;field&quot;: &quot;at&quot;, &quot;tooltip&quot;:&quot;cite-at-tooltip&quot;},
+{&quot;field&quot;: &quot;trans-title&quot;},
+{&quot;field&quot;: &quot;publisher&quot;, &quot;autofillprop&quot;:&quot;publisher&quot;},
+{&quot;field&quot;: &quot;location&quot;},
+{&quot;field&quot;: &quot;language&quot;, &quot;autofillprop&quot;:&quot;language&quot;},
+{&quot;field&quot;: &quot;format&quot;},
+{&quot;field&quot;: &quot;issn&quot;, &quot;autofillprop&quot;:&quot;issn&quot;},
+{&quot;field&quot;: &quot;pmc&quot;},
+{&quot;field&quot;: &quot;oclc&quot;},
+{&quot;field&quot;: &quot;bibcode&quot;},
+{&quot;field&quot;: &quot;id&quot;},
+{&quot;field&quot;: &quot;quote&quot;},
+{&quot;field&quot;: &quot;postscript&quot;, &quot;tooltip&quot;:&quot;cite-postscript-tooltip&quot;}
+]);
+
+new citeErrorCheck({'type':'reflist', 'testname':'samecontent', 'desc': 'cite-samecontent-desc',
+'func': function(reflist) {
+  var errors = [];
+  var refs2 = [];
+  for(var i=0; i&lt;reflist.length; i++) {
+    if (!reflist[i].shorttag) {
+      if ($.inArray(reflist[i].content, refs2) != -1) {
+        if ($.inArray(reflist[i].content, errors) == -1) {
+          errors.push(reflist[i].content);
+        }
+      } else {
+        refs2.push(reflist[i].content);
+      }
+    }
+  }
+  ret = [];
+  for(var j=0; j&lt;errors.length; j++) {
+    ret.push({'msg':'cite-samecontent-error', 'err':errors[j]});
+  }
+  return ret;
+}}
+);
+
+new citeErrorCheck({'type':'reflist', 'testname':'repeated', 'desc':'cite-repeated-desc',
+'func': function(reflist) {
+  var errors = [];
+  var refs2 = [];
+  for(var i=0; i&lt;reflist.length; i++) {
+    if (!reflist[i].shorttag &amp;&amp; reflist[i].refname) {
+      if ($.inArray(reflist[i].refname, refs2) != -1) {
+        if ($.inArray(reflist[i].refname, errors) == -1) {
+          errors.push(reflist[i].refname);
+        }
+      } else {
+        refs2.push(reflist[i].refname);
+      }
+    }
+  }
+  ret = [];
+  for(var j=0; j&lt;errors.length; j++) {
+    ret.push({'msg':'cite-repeated-error', 'err':errors[j]});
+  }
+  return ret;
+}}
+);
+
+new citeErrorCheck({'type':'reflist', 'testname':'undefined', 'desc':'cite-undefined-desc',
+'func': function(reflist) {
+  var errors = [];
+  var longrefs = [];
+  for(var i=0; i&lt;reflist.length; i++) {
+    if (!reflist[i].shorttag &amp;&amp; reflist[i].refname) {
+      longrefs.push(reflist[i].refname);
+    }
+  }
+  for(var j=0; i&lt;reflist.length; j++) {
+    if (reflist[i].shorttag &amp;&amp; $.inArray(reflist[i].refname, errors) == -1 &amp;&amp; $.inArray(reflist[i].refname, longrefs) == -1) {
+      errors.push(reflist[i].refname);
+    }
+  }
+  ret = [];
+  for(var j=0; j&lt;errors.length; j++) {
+    ret.push({'msg':'cite-undefined-error', 'err':errors[j]});
+  }
+  return ret;
+}}
+);
+
+CiteTB.init();</text>
+      <sha1>5k7pz9gh2u51s3fzxb3cabst23u1oye</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>MediaWiki:RefToolbarLegacy.js</title>
+    <ns>8</ns>
+    <id>30902723</id>
+    <revision>
+      <id>675423171</id>
+      <parentid>606944302</parentid>
+      <timestamp>2015-08-10T13:59:59Z</timestamp>
+      <contributor>
+        <username>Mr. Stradivarius</username>
+        <id>4708675</id>
+      </contributor>
+      <comment>remove deprecated sajax functions per protected edit request by [[User:TheDJ]]</comment>
+      <model>javascript</model>
+      <format>text/javascript</format>
+      <text xml:space="preserve" bytes="63276">var numforms = 0;
+var wikEdAutoUpdateUrl;
+var citeUserDateFormat;
+var refTagURL;
+var defaultRefTagURL = '//reftag.appspot.com/';
+var refToolDebug;
+
+String.prototype.trim = function() {
+	return this.replace(/^\s+|\s+$/g,&quot;&quot;);
+};
+
+function refbuttons() {
+  if (mwCustomEditButtons &amp;&amp; document.getElementById('toolbar') ) {
+    var button = document.createElement('a');
+    button.href = &quot;javascript:easyCiteMain()&quot;;
+    button.title = &quot;Insert Citation&quot;;
+    var buttonimage = document.createElement('img');
+    buttonimage.src = &quot;//upload.wikimedia.org/wikipedia/commons/e/ea/Button_easy_cite.png&quot;;
+    buttonimage.alt = &quot;Insert Citation&quot;;
+    button.appendChild(buttonimage);
+    var toolbar = document.getElementById('toolbar');
+    if (navigator.userAgent.indexOf('MSIE') == -1) {
+      toolbar.appendChild(button);
+      var citemain = document.createElement('div');
+      citemain.style.display = 'none';
+      citemain.style.margin = '0 0 6px';
+      citemain.style.clear = 'both';
+      citemain.style.height = 'auto';
+      citemain.setAttribute('Id', 'citeselect');
+      citemain.appendChild( addOption(&quot;citeWeb()&quot;, &quot;Web&quot;) );
+      citemain.appendChild( addOption(&quot;citeNews()&quot;, &quot;News&quot;) );
+      citemain.appendChild( addOption(&quot;citeBook()&quot;, &quot;Book&quot;) );
+      citemain.appendChild( addOption(&quot;citeJournal()&quot;, &quot;Journal&quot;) );
+      citemain.appendChild( addOption(&quot;citeNamedRef()&quot;, &quot;Named references&quot;) );
+      citemain.appendChild( addOption(&quot;dispErrors()&quot;, &quot;Error check&quot;) );
+      citemain.appendChild( addOption(&quot;showMore()&quot;, &quot;More&quot;) );
+      citemain.appendChild( addOption(&quot;hideInitial()&quot;, &quot;Cancel&quot;) );
+
+      var citemore = document.createElement('div');
+      citemore.style.display = 'none';
+      citemore.setAttribute('Id', 'citemore');
+      citemore.appendChild( addOption(&quot;citeEncyclopedia()&quot;, &quot;Encyclopedia&quot;) );
+      citemore.appendChild( addOption(&quot;citePressRelease()&quot;, &quot;Press release&quot;) );
+      citemore.appendChild( addOption(&quot;citeMap()&quot;, &quot;Map&quot;) );
+      citemore.appendChild( addOption(&quot;showRefSectionOptions()&quot;, &quot;Ref Section&quot;) );
+      citemain.appendChild(citemore);
+
+      $( citemain ).insertAfter( $( toolbar ) );
+    }
+    else {
+      toolbar.appendChild(button);
+      var citeselect = document.createElement('div');
+      citeselect.id = 'citeselect';
+      citeselect.style.display = &quot;none&quot;;
+      citeselect.innerHTML = '&lt;input type=&quot;button&quot; value=&quot;Web&quot; onclick=&quot;citeWeb()&quot; /&gt;'+
+      '&lt;input type=&quot;button&quot; value=&quot;News&quot; onclick=&quot;citeNews()&quot; /&gt;'+
+      '&lt;input type=&quot;button&quot; value=&quot;Book&quot; onclick=&quot;citeBook()&quot; /&gt;'+
+      '&lt;input type=&quot;button&quot; value=&quot;Journal&quot; onclick=&quot;citeJournal()&quot; /&gt;'+
+      '&lt;input type=&quot;button&quot; value=&quot;Named references&quot; onclick=&quot;citeNamedRef()&quot; /&gt;'+
+      '&lt;input type=&quot;button&quot; value=&quot;Error check&quot; onclick=&quot;dispErrors()&quot; /&gt;'+
+      '&lt;input type=&quot;button&quot; value=&quot;More&quot; onclick=&quot;showMore()&quot; /&gt;'+
+      '&lt;input type=&quot;button&quot; value=&quot;Cancel&quot; onclick=&quot;hideInitial()&quot; /&gt;'+
+      '&lt;div id=&quot;citemore&quot; style=&quot;display:none&quot;&gt;\
+      &lt;input type=&quot;button&quot; value=&quot;Encyclopedia&quot; onclick=&quot;citeEncyclopedia()&quot; /&gt;\
+      &lt;input type=&quot;button&quot; value=&quot;Press release&quot; onclick=&quot;citePressRelease()&quot; /&gt;\
+      &lt;input type=&quot;button&quot; value=&quot;Map&quot; onclick=&quot;citeMap()&quot; /&gt;\
+      &lt;input type=&quot;button&quot; value=&quot;Ref Section&quot; onclick=&quot;showRefSectionOptions()&quot; /&gt;\
+      &lt;/div&gt;';
+      document.getElementById('editform').insertBefore(citeselect, document.getElementById('editform').firstChild ) ;
+    }
+    var reftoolformarea = document.createElement( 'span' );
+    reftoolformarea.id = 'refToolFormArea';
+    document.getElementById('citeselect').appendChild( reftoolformarea );
+  }
+  if (typeof EditTools == &quot;object&quot;) {
+    var placeholder = document.getElementById(&quot;editpage-specialchars&quot;);
+    EditTools.createEditTools (placeholder);
+  }
+}
+
+function addOption(script, text) {
+  var option = document.createElement('input');
+  option.setAttribute('type', 'button');
+  option.setAttribute('onclick', script);
+  option.setAttribute(&quot;value&quot;, text);
+  return option;
+}
+
+function hideInitial() {
+  document.getElementById('citeselect').style.display = 'none';
+  oldFormHide();
+}
+
+function oldFormHide() {
+  //if (numforms != 0) {
+  //  document.getElementById('citediv'+numforms).style.display = 'none';
+  //}
+  document.getElementById('refToolFormArea').innerHTML = '';
+  if (document.getElementById('errorform') !== null) {
+    document.getElementById('citeselect').removeChild(document.getElementById('errorform'));
+  }
+}
+
+function easyCiteMain() {
+  document.getElementById('citeselect').style.display = '';
+  document.getElementById('citemore').style.display = 'none';
+}
+
+function showMore() {
+	document.getElementById('citemore').style.display = '';
+}
+
+var months = ['January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'];
+var citeGlobalDateFormat = &quot;&lt;date&gt; &lt;monthname&gt; &lt;year&gt;&quot;;
+function getTime() {
+  var datestr = '';
+  if (citeUserDateFormat) {
+    datestr = citeUserDateFormat;
+  } else {
+    datestr = citeGlobalDateFormat;
+  }
+  var DT = new Date();
+  var zmonth = '';
+  var month = DT.getUTCMonth()+1;
+  if (month &lt; 10) {
+    zmonth = &quot;0&quot;+month.toString();
+  } else {
+    zmonth = month.toString();
+  }
+  month = month.toString();
+  var zdate = '';
+  var date = DT.getUTCDate();
+  if (date &lt; 10) {
+    zdate = &quot;0&quot;+date.toString();
+  } else {
+    zdate = date.toString();
+  }
+  date = date.toString();
+  datestr = datestr.replace('&lt;date&gt;', date);
+  datestr = datestr.replace('&lt;month&gt;', month);
+  datestr = datestr.replace('&lt;zdate&gt;', zdate);
+  datestr = datestr.replace('&lt;zmonth&gt;', zmonth);
+  datestr = datestr.replace('&lt;monthname&gt;', months[DT.getUTCMonth()]);
+  datestr = datestr.replace('&lt;year&gt;', DT.getUTCFullYear().toString());
+  return (datestr);
+}
+
+function lastNameToRefname() {
+  //Note: This only works if field 'refname' comes after field 'last', but it always does
+  var lastName;
+  var fields = document.getElementById('citediv'+numforms).getElementsByTagName('input');
+  for (var i=0; i&lt;fields.length; i++) {
+    if(fields[i].id == 'last') {
+      lastName = fields[i].value;
+    }
+    else if(fields[i].id == 'refname') {
+      fields[i].value = lastName.replace(/^\s*(.*?)\s*$/, &quot;$1&quot;);
+      return;
+    }
+  }
+}
+
+function setAccessDateToday() {
+  document.getElementById('accessdate').value = getTime();
+/*  var fields = document.getElementById('citediv'+numforms).getElementsByTagName('input');
+  for (var i=0; i&lt;fields.length; i++) {
+    if(fields[i].id == 'accessdate') {
+      fields[i].value = getTime();
+      return;
+    }
+  }
+*/
+}
+
+function getLastName(authornum) {
+  if (/\S/.test(document.getElementById('last'+authornum).value)) {
+    return document.getElementById('last'+authornum).value;
+  }
+  else {
+    var author = document.getElementById('author'+authornum).value;
+    var match = /(\S+)\s*$/.exec(author);
+    if (match) {
+      return match[1];
+    }
+    else {
+      return '';
+    }
+  }
+}
+
+function makeRefname() {
+  var refname;
+  if (document.getElementById('last1')) {
+    refname = document.getElementById('last1').value + document.getElementById('last2').value;
+  }
+  else{
+	refname = document.getElementById('last').value;
+  }
+  if (/\S/.test(refname)) {
+    var date = document.getElementById('date').value;
+    var match = /[0-9]{4}/.exec(date);
+    if (match) {
+      refname += match[0];
+    }
+  }
+  else {
+    refname = document.getElementById('title').value;
+  }
+  document.getElementById('refname').value = refname;
+}
+
+function citeWeb() {
+  citeNewsWeb(&quot;cite web&quot;);
+}
+function citeNews() {
+  citeNewsWeb(&quot;cite news&quot;);
+}
+
+function citeNewsWeb(templatename) {
+  oldFormHide();
+  var template = templatename;
+  var legend;
+  if (template == &quot;cite web&quot;) {
+    legend = &quot;Cite web source&quot;;
+  } else {
+    legend = &quot;Cite news source&quot;;
+  }
+  var newtime = getTime();
+  numforms++;
+  var form = '&lt;div id=&quot;citediv'+numforms+'&quot;&gt;'+
+    '&lt;fieldset&gt;&lt;legend&gt;'+legend+'&lt;/legend&gt;'+
+    '&lt;table cellspacing=&quot;5&quot;&gt;'+
+    '&lt;input type=&quot;hidden&quot; value=&quot;'+template+'&quot; id=&quot;template&quot;&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;url&quot;&gt;&amp;nbsp;URL: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;image&quot; src=&quot;//upload.wikimedia.org/wikipedia/commons/6/62/Arrow_out_condensed.png&quot; tabindex=1 alt=&quot;Fetch&quot; title=&quot;' + ((template == 'cite news') ? 'For a New York Times article URL, fetch article data and fill in the fields. For other URLs, fetch the page title.' : 'Fetch the page title. Irrelevant parts often have to be removed manually afterwards.') + '&quot; onClick=&quot;pullURL(); return false;&quot; style=&quot;float:right&quot;&gt;&lt;span style=&quot;display: block;overflow: hidden;&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:97%&quot; id=&quot;url&quot;&gt;&lt;/span&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;title&quot;&gt;&amp;nbsp;Title: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;title&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;last&quot;&gt;&amp;nbsp;Last name: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;last&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;first&quot;&gt;&amp;nbsp;First name: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;first&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;coauthors&quot;&gt;&amp;nbsp;Coauthors: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;coauthors&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;date&quot;&gt;&amp;nbsp;Publication date: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;date&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;work&quot;&gt;&amp;nbsp;' + ((template == 'cite news') ? 'Newspaper' : 'Work') + ': &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;work&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;publisher&quot;&gt;&amp;nbsp;Publisher: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;publisher&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;pages&quot;&gt;&amp;nbsp;Pages: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;pages&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;language&quot;&gt;&amp;nbsp;Language: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;language&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;accessdate&quot;&gt;&amp;nbsp;Access date: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;accessdate&quot; value=&quot;'+ newtime +'&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;location&quot;&gt;&amp;nbsp;Location: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;location&quot;&gt;&lt;/td&gt;&lt;/tr&gt;';
+  if (template == 'cite web') {
+    form += '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;archiveurl&quot;&gt;&amp;nbsp;Archive URL: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;archiveurl&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;archivedate&quot;&gt;&amp;nbsp;Archive date: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;archivedate&quot;&gt;&lt;/td&gt;&lt;/tr&gt;';
+  }
+  form += '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;refname&quot;&gt;&amp;nbsp;Reference name: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:60%&quot; id=&quot;refname&quot;&gt;&lt;input type=&quot;button&quot; value=&quot;&lt;Last name&quot; onClick=&quot;lastNameToRefname()&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;/table&gt;'+
+    ' &lt;input type=&quot;button&quot; value=&quot;Add citation&quot; onClick=&quot;addcites()&quot;&gt;'+
+	' &lt;input type=&quot;button&quot; value=&quot;Preview citation&quot; onClick=&quot;previewCitationDefault()&quot;&gt; \
+	&lt;img id=&quot;progress&quot; src=&quot;//upload.wikimedia.org/wikipedia/commons/5/59/RefToolbar_spinning_throbber.gif&quot; style=&quot;visibility: hidden&quot; /&gt;'+
+    '&lt;input type=&quot;checkbox&quot; tabindex=1 name=&quot;verbose&quot; id=&quot;verbose&quot; value=&quot;verbose&quot;&gt;&lt;label for=&quot;verbose&quot;&gt;Vertical form&lt;/label&gt;'+
+    '&lt;span style=&quot;float:right&quot;&gt;&lt;a href=&quot;//en.wikipedia.org/wiki/Template:'+template.replace(/ /g, '_')+'&quot; target=&quot;_blank&quot;&gt;[Template documentation]&lt;/a&gt;&lt;/span&gt;'+
+    '&lt;/fieldset&gt;&lt;span id=&quot;previewSpan&quot;&gt;&lt;/span&gt;&lt;/div&gt;';
+   document.getElementById('refToolFormArea').innerHTML = form;
+}
+
+function citeBook() {
+  oldFormHide();
+  var template = &quot;cite book&quot;;
+  numforms++;
+  var form = '&lt;div id=&quot;citediv'+numforms+'&quot;&gt;'+
+    '&lt;fieldset&gt;&lt;legend&gt;Cite book source&lt;/legend&gt;';
+
+  form += '&lt;table cellspacing=&quot;5&quot; width=&quot;100%&quot;&gt; \
+	&lt;tr&gt;&lt;td&gt;&lt;label for=&quot;title&quot;&gt;Title: &lt;/label&gt;&lt;/td&gt; \
+	&lt;td colspan=5&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;title&quot;&gt;&lt;/td&gt;&lt;/tr&gt;';
+  for (var i=1;i&lt;=3;i++) {
+    var i_str = i == 1 ? '': ' '+i;
+    form += '&lt;tr&gt; \
+		&lt;td width=&quot;130&quot;&gt;&lt;label for=&quot;last'+i+'&quot;&gt;Author'+i_str+' last&amp;nbsp;name: &lt;/label&gt;&lt;/td&gt; \
+		&lt;td&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;last'+i+'&quot;&gt;&lt;/td&gt; \
+		&lt;td&gt;&lt;label for=&quot;first'+i+'&quot;&gt;&amp;nbsp;first&amp;nbsp;name: &lt;/label&gt;&lt;/td&gt; \
+		&lt;td&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;first'+i+'&quot;&gt;&lt;/td&gt; \
+		&lt;td&gt;&lt;label for=&quot;authorlink'+i+'&quot;&gt;&amp;nbsp;Authorlink: &lt;/label&gt;&lt;/td&gt; \
+		&lt;td&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;authorlink'+i+'&quot;&gt; \
+		&lt;!--&lt;a id=&quot;authorLinkAnchor'+i+'&quot;&gt;&lt;img id=&quot;authorLinkButton'+i+'&quot; src=&quot;static/progress.gif&quot; border=&quot;0&quot; style=&quot;visibility: hidden&quot; /&gt;&lt;/a&gt; \
+		&lt;a href=&quot;//en.wikipedia.org/wiki/%s&quot; target=&quot;_blank&quot;&gt;&lt;img id=&quot;authorTryLink'+i+'&quot; src=&quot;static/external.png&quot; border=&quot;0&quot; style=&quot;visibility: hidden&quot; /&gt;&lt;/a&gt; --&gt; \
+		&lt;/td&gt; \
+		&lt;/tr&gt;';
+  }
+  form += '&lt;tr&gt;&lt;td&gt;&lt;label for=&quot;coauthors&quot;&gt;Coauthors: &lt;/label&gt;&lt;/td&gt; \
+	&lt;td&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;coauthors&quot;&gt;&lt;/td&gt; \
+	&lt;td&gt;&lt;label for=&quot;editor&quot;&gt;&amp;nbsp;Editor: &lt;/label&gt;&lt;/td&gt; \
+	&lt;td&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;editor&quot;&gt;&lt;/td&gt; \
+	&lt;td&gt;&lt;label for=&quot;others&quot;&gt;&amp;nbsp;Others: &lt;/label&gt;&lt;/td&gt; \
+	&lt;td&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;others&quot;&gt;&lt;/td&gt;&lt;/tr&gt; \
+	&lt;/table&gt; \
+	&lt;table cellspacing=&quot;5&quot; width=&quot;100%&quot;&gt; \
+	&lt;tr&gt;&lt;td width=&quot;130&quot;&gt;&lt;label for=&quot;publisher&quot;&gt;Publisher: &lt;/label&gt;&lt;/td&gt; \
+	&lt;td&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;publisher&quot;&gt;&lt;/td&gt; \
+	&lt;td&gt;&lt;label for=&quot;location&quot;&gt;&amp;nbsp;Location: &lt;/label&gt;&lt;/td&gt; \
+	&lt;td&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;location&quot;&gt;&lt;/td&gt;&lt;/tr&gt; \
+	\
+	&lt;tr&gt;&lt;td&gt;&lt;label for=&quot;date&quot;&gt;Publication&amp;nbsp;date or&amp;nbsp;year: &lt;/label&gt;&lt;/td&gt; \
+	&lt;td&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:140px&quot; id=&quot;date&quot;&gt; \
+	&lt;input id=&quot;dmy&quot; name=&quot;dateformat&quot; value=&quot;dmy&quot; type=&quot;radio&quot; tabindex=1 onclick=&quot;reformatDates()&quot;&gt;&lt;label for=&quot;dmy&quot;&gt;dmy&lt;/label&gt; \
+	&lt;input id=&quot;mdy&quot; name=&quot;dateformat&quot; value=&quot;mdy&quot; type=&quot;radio&quot; tabindex=1 onclick=&quot;reformatDates()&quot;&gt;&lt;label for=&quot;mdy&quot;&gt;md, y&lt;/label&gt; \
+	&lt;input id=&quot;ymd&quot; name=&quot;dateformat&quot; value=&quot;ymd&quot; type=&quot;radio&quot; tabindex=1 onclick=&quot;reformatDates()&quot;&gt;&lt;label for=&quot;ymd&quot;&gt;y-m-d&lt;/label&gt; \
+	&lt;/td&gt; \
+	&lt;td&gt;&lt;label for=&quot;edition&quot;&gt;&amp;nbsp;Edition: &lt;/label&gt;&lt;/td&gt; \
+	&lt;td&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;edition&quot;&gt;&lt;/td&gt;&lt;/tr&gt; \
+	\
+	&lt;tr&gt;&lt;td&gt;&lt;label for=&quot;series&quot;&gt;Series: &lt;/label&gt;&lt;/td&gt; \
+	&lt;td&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;series&quot;&gt;&lt;/td&gt; \
+	&lt;td&gt;&lt;label for=&quot;volume&quot;&gt;&amp;nbsp;Volume: &lt;/label&gt;&lt;/td&gt; \
+	&lt;td&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;volume&quot;&gt;&lt;/td&gt;&lt;/tr&gt; \
+	\
+	&lt;tr&gt;&lt;td&gt;&lt;label for=&quot;pages&quot;&gt;Page number(s):&lt;/label&gt;&lt;/td&gt; \
+	&lt;td&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;pages&quot; name=&quot;pages&quot; onFocus=&quot;this.style.backgroundColor=\'\';&quot;&gt;&lt;/td&gt; \
+	&lt;td&gt;&lt;label for=&quot;chapter&quot;&gt;&amp;nbsp;Chapter: &lt;/label&gt;&lt;/td&gt; \
+	&lt;td&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;chapter&quot;&gt;&lt;/td&gt;&lt;/tr&gt; \
+	\
+	&lt;tr&gt;&lt;td&gt;&lt;label for=&quot;isbn&quot;&gt;ISBN: &lt;/label&gt;&lt;/td&gt; \
+	&lt;td&gt;&lt;input type=&quot;image&quot; src=&quot;//upload.wikimedia.org/wikipedia/commons/6/62/Arrow_out_condensed.png&quot; tabindex=1 alt=&quot;Fetch&quot; title=&quot;Fill in citation data based on ISBN from Diberri\'s tool.&quot; onClick=&quot;pullISBN(); return false;&quot; style=&quot;float:right&quot;&gt;&lt;span style=&quot;display: block;overflow: hidden;&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:97%&quot; id=&quot;isbn&quot;&gt;&lt;/span&gt;&lt;/td&gt; \
+	&lt;td&gt;&lt;label for=&quot;language&quot;&gt;&amp;nbsp;Language: &lt;/label&gt;&lt;/td&gt; \
+	&lt;td&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;language&quot;&gt;&lt;/td&gt;&lt;/tr&gt; \
+	\
+	&lt;tr&gt;&lt;td&gt;&lt;label for=&quot;url&quot;&gt;URL: &lt;/label&gt;&lt;/td&gt; \
+	&lt;td&gt;&lt;input type=&quot;image&quot; src=&quot;//upload.wikimedia.org/wikipedia/commons/6/62/Arrow_out_condensed.png&quot; tabindex=1 alt=&quot;Fetch&quot; title=&quot;Fill in citation data based on a Google Books URL.&quot; onClick=&quot;pullJs(); return false;&quot; style=&quot;float:right&quot;&gt;&lt;span style=&quot;display: block;overflow: hidden;&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:97%&quot; id=&quot;url&quot;&gt;&lt;/span&gt;&lt;/td&gt; \
+	&lt;td&gt;&lt;label for=&quot;accessdate&quot;&gt;&amp;nbsp;Access&amp;nbsp;date:&lt;/label&gt;&lt;/td&gt; \
+	&lt;td&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;accessdate&quot;&gt;&lt;/td&gt;&lt;/tr&gt; \
+	\
+	&lt;tr&gt;&lt;td&gt;&lt;label for=&quot;otherfields&quot;&gt;Other&amp;nbsp;fields:&lt;/label&gt;&lt;/td&gt; \
+	&lt;td&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;otherfields&quot;&gt;&lt;/td&gt; \
+	&lt;td&gt;&lt;label for=&quot;refname&quot;&gt;&amp;nbsp;Ref&amp;nbsp;name: &lt;/label&gt;&lt;/td&gt; \
+	&lt;td&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;refname&quot;&gt;&lt;/td&gt; \
+	&lt;/tr&gt; \
+	&lt;/table&gt; \
+	\
+	&lt;input type=&quot;radio&quot; tabindex=1 name=&quot;template&quot; id=&quot;cite_book&quot; value=&quot;cite_book&quot; checked=&quot;1&quot;&gt;&lt;label for=&quot;cite_book&quot;&gt;{{cite book}}&lt;/label&gt; &lt;sup&gt;&lt;a href=&quot;//en.wikipedia.org/wiki/Template:Cite_book&quot; target=&quot;_blank&quot;&gt;[doc]&lt;/a&gt;&lt;/sup&gt; \
+	&lt;input type=&quot;radio&quot; tabindex=1 name=&quot;template&quot; id=&quot;citation&quot; value=&quot;citation&quot;&gt;&lt;label for=&quot;citation&quot;&gt;{{citation}}&lt;/label&gt; &lt;sup&gt;&lt;a href=&quot;//en.wikipedia.org/wiki/Template:Citation&quot; target=&quot;_blank&quot;&gt;[doc]&lt;/a&gt;&lt;/sup&gt; \
+	&lt;input type=&quot;radio&quot; tabindex=1 name=&quot;template&quot; id=&quot;plain&quot; value=&quot;plain&quot;&gt;&lt;label for=&quot;plain&quot;&gt;plain wikicode (experimental)&lt;/label&gt; \
+	&lt;input type=&quot;checkbox&quot; tabindex=1 name=&quot;verbose&quot; id=&quot;verbose&quot; value=&quot;verbose&quot;&gt;&lt;label for=&quot;verbose&quot;&gt;Vertical form&lt;/label&gt; \
+	&lt;input type=&quot;checkbox&quot; tabindex=1 name=&quot;extraparams&quot; id=&quot;extraparams&quot; value=&quot;extraparams&quot;&gt;&lt;label for=&quot;extraparams&quot;&gt;Extra parameters&lt;/label&gt; \
+	&lt;br /&gt;&lt;input type=&quot;button&quot; value=&quot;Add citation&quot; onClick=&quot;makeCiteBook()&quot;&gt; \
+	&lt;input type=&quot;button&quot; value=&quot;Preview citation&quot; onClick=&quot;previewCitationBook()&quot;&gt; \
+	&lt;img id=&quot;progress&quot; src=&quot;//upload.wikimedia.org/wikipedia/commons/5/59/RefToolbar_spinning_throbber.gif&quot; style=&quot;visibility: hidden&quot; /&gt; \
+	\
+ 	&lt;/fieldset&gt;&lt;span id=&quot;previewSpan&quot;&gt;&lt;/span&gt;&lt;/div&gt;';
+   document.getElementById('refToolFormArea').innerHTML = form;
+}
+
+function citeJournal() {
+  oldFormHide();
+  var template = &quot;cite journal&quot;;
+  numforms++;
+  var form = '&lt;div id=&quot;citediv'+numforms+'&quot;&gt;'+
+    '&lt;fieldset&gt;&lt;legend&gt;Cite journal&lt;/legend&gt;'+
+    '&lt;table cellspacing=&quot;5&quot;&gt;'+
+    '&lt;input type=&quot;hidden&quot; value=&quot;'+template+'&quot; id=&quot;template&quot;&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;last&quot;&gt;&amp;nbsp;Last name: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;last&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;first&quot;&gt;&amp;nbsp;First name: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;first&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;coauthors&quot;&gt;&amp;nbsp;Coauthors: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;coauthors&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;date&quot;&gt;&amp;nbsp;Publication date: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;date&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;title&quot;&gt;&amp;nbsp;Title: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;title&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;journal&quot;&gt;&amp;nbsp;Journal: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;journal&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;publisher&quot;&gt;&amp;nbsp;Publisher: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;publisher&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;location&quot;&gt;&amp;nbsp;Location: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;location&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;volume&quot;&gt;&amp;nbsp;Volume: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;volume&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;issue&quot;&gt;&amp;nbsp;Issue: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;issue&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;pages&quot;&gt;&amp;nbsp;Pages: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;pages&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;issn&quot;&gt;&amp;nbsp;ISSN: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;issn&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;oclc&quot;&gt;&amp;nbsp;OCLC: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;oclc&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;doi&quot;&gt;&amp;nbsp;DOI: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;image&quot; src=&quot;//upload.wikimedia.org/wikipedia/commons/6/62/Arrow_out_condensed.png&quot; tabindex=1 alt=&quot;Fetch&quot; title=&quot;Fetch citation data for a DOI from crossref.org and fill in the other fields.&quot; onClick=&quot;pullDOI(); return false;&quot; style=&quot;float:right&quot;&gt;&lt;span style=&quot;display: block;overflow: hidden;&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:97%&quot; id=&quot;doi&quot;&gt;&lt;/span&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;pmid&quot;&gt;&amp;nbsp;PMID: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;image&quot; src=&quot;//upload.wikimedia.org/wikipedia/commons/6/62/Arrow_out_condensed.png&quot; tabindex=1 alt=&quot;Fetch&quot; title=&quot;Fetch citation data for a PMID&quot; onClick=&quot;pullPMID(); return false;&quot; style=&quot;float:right;visibility:hidden&quot;&gt;&lt;span style=&quot;display: block;overflow: hidden;&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:97%&quot; id=&quot;pmid&quot;&gt;&lt;/span&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;quote&quot;&gt;&amp;nbsp;Quote: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;quote&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;url&quot;&gt;&amp;nbsp;URL: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;url&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;accessdate&quot;&gt;&amp;nbsp;Access date: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;accessdate&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;language&quot;&gt;&amp;nbsp;Language: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;language&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;refname&quot;&gt;&amp;nbsp;Reference name: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:60%&quot; id=&quot;refname&quot;&gt;&lt;input type=&quot;button&quot; value=&quot;&lt;Last name&quot; onClick=&quot;lastNameToRefname()&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;/table&gt;'+
+    '&lt;input type=&quot;button&quot; value=&quot;Add citation&quot; onClick=&quot;addcites()&quot;&gt;'+
+	' &lt;input type=&quot;button&quot; value=&quot;Preview citation&quot; onClick=&quot;previewCitationDefault()&quot;&gt; \
+	&lt;img id=&quot;progress&quot; src=&quot;//upload.wikimedia.org/wikipedia/commons/5/59/RefToolbar_spinning_throbber.gif&quot; style=&quot;visibility: hidden&quot; /&gt;'+
+    '&lt;input type=&quot;checkbox&quot; tabindex=1 name=&quot;verbose&quot; id=&quot;verbose&quot; value=&quot;verbose&quot;&gt;&lt;label for=&quot;verbose&quot;&gt;Vertical form&lt;/label&gt;'+
+    '&lt;span style=&quot;float:right&quot;&gt;&lt;a href=&quot;//en.wikipedia.org/wiki/Template:'+template.replace(/ /g, '_')+'&quot; target=&quot;_blank&quot;&gt;[Template documentation]&lt;/a&gt;&lt;/span&gt;'+
+    '&lt;/fieldset&gt;&lt;span id=&quot;previewSpan&quot;&gt;&lt;/span&gt;&lt;/div&gt;';
+   document.getElementById('refToolFormArea').innerHTML = form;
+}
+
+function citeEncyclopedia() {
+  oldFormHide();
+  var template = &quot;cite encyclopedia&quot;;
+  numforms++;
+  var form = '&lt;div id=&quot;citediv'+numforms+'&quot;&gt;'+
+    '&lt;fieldset&gt;&lt;legend&gt;Cite encyclopedia source&lt;/legend&gt;'+
+    '&lt;table cellspacing=&quot;5&quot;&gt;'+
+    '&lt;input type=&quot;hidden&quot; value=&quot;'+template+'&quot; id=&quot;template&quot;&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;last&quot;&gt;&amp;nbsp;Last name: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;last&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;first&quot;&gt;&amp;nbsp;First name: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;first&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;coauthors&quot;&gt;&amp;nbsp;Coauthors: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;coauthors&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;editors&quot;&gt;&amp;nbsp;Editors: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;editors&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;title&quot;&gt;&amp;nbsp;Entry title: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;title&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;encyclopedia&quot;&gt;&amp;nbsp;Encyclopedia: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;encyclopedia&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;publisher&quot;&gt;&amp;nbsp;Publisher: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;publisher&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;location&quot;&gt;&amp;nbsp;Location: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;location&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;year&quot;&gt;&amp;nbsp;Year: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;year&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;volume&quot;&gt;&amp;nbsp;Volume: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;volume&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;pages&quot;&gt;&amp;nbsp;Pages: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;pages&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;isbn&quot;&gt;&amp;nbsp;ISBN: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;isbn&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;url&quot;&gt;&amp;nbsp;URL: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;url&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;accessdate&quot;&gt;&amp;nbsp;Access date: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;accessdate&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;language&quot;&gt;&amp;nbsp;Language: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;language&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;refname&quot;&gt;&amp;nbsp;Reference name: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;refname&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;/table&gt;'+
+    '&lt;input type=&quot;button&quot; value=&quot;Add citation&quot; onClick=&quot;addcites()&quot;&gt;'+
+	' &lt;input type=&quot;button&quot; value=&quot;Preview citation&quot; onClick=&quot;previewCitationDefault()&quot;&gt; \
+	&lt;img id=&quot;progress&quot; src=&quot;//upload.wikimedia.org/wikipedia/commons/5/59/RefToolbar_spinning_throbber.gif&quot; style=&quot;visibility: hidden&quot; /&gt;'+
+    '&lt;input type=&quot;checkbox&quot; tabindex=1 name=&quot;verbose&quot; id=&quot;verbose&quot; value=&quot;verbose&quot;&gt;&lt;label for=&quot;verbose&quot;&gt;Vertical form&lt;/label&gt;'+
+    '&lt;span style=&quot;float:right&quot;&gt;&lt;a href=&quot;//en.wikipedia.org/wiki/Template:'+template.replace(/ /g, '_')+'&quot; target=&quot;_blank&quot;&gt;[Template documentation]&lt;/a&gt;&lt;/span&gt;'+
+    '&lt;/fieldset&gt;&lt;span id=&quot;previewSpan&quot;&gt;&lt;/span&gt;&lt;/div&gt;';
+   document.getElementById('refToolFormArea').innerHTML = form;
+}
+
+function citePressRelease() {
+  oldFormHide();
+  var template = &quot;cite press release&quot;;
+  numforms++;
+  var form = '&lt;div id=&quot;citediv'+numforms+'&quot;&gt;'+
+    '&lt;fieldset&gt;&lt;legend&gt;Cite press release&lt;/legend&gt;'+
+    '&lt;table cellspacing=&quot;5&quot;&gt;'+
+    '&lt;input type=&quot;hidden&quot; value=&quot;'+template+'&quot; id=&quot;template&quot;&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;title&quot;&gt;&amp;nbsp;Title: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;title&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;publisher&quot;&gt;&amp;nbsp;Publisher: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;publisher&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;date&quot;&gt;&amp;nbsp;Date: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;date&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;language&quot;&gt;&amp;nbsp;Language: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;language&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;url&quot;&gt;&amp;nbsp;URL: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;url&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;accessdate&quot;&gt;&amp;nbsp;Access date: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;accessdate&quot; value=&quot;'+ getTime() +'&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;refname&quot;&gt;&amp;nbsp;Reference name: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;refname&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;/table&gt;'+
+    '&lt;input type=&quot;button&quot; value=&quot;Add citation&quot; onClick=&quot;addcites()&quot;&gt;'+
+	' &lt;input type=&quot;button&quot; value=&quot;Preview citation&quot; onClick=&quot;previewCitationDefault()&quot;&gt; \
+	&lt;img id=&quot;progress&quot; src=&quot;//upload.wikimedia.org/wikipedia/commons/5/59/RefToolbar_spinning_throbber.gif&quot; style=&quot;visibility: hidden&quot; /&gt;'+
+    '&lt;input type=&quot;checkbox&quot; tabindex=1 name=&quot;verbose&quot; id=&quot;verbose&quot; value=&quot;verbose&quot;&gt;&lt;label for=&quot;verbose&quot;&gt;Vertical form&lt;/label&gt;'+
+    '&lt;span style=&quot;float:right&quot;&gt;&lt;a href=&quot;//en.wikipedia.org/wiki/Template:'+template.replace(/ /g, '_')+'&quot; target=&quot;_blank&quot;&gt;[Template documentation]&lt;/a&gt;&lt;/span&gt;'+
+    '&lt;/fieldset&gt;&lt;span id=&quot;previewSpan&quot;&gt;&lt;/span&gt;&lt;/div&gt;';
+   document.getElementById('refToolFormArea').innerHTML = form;
+}
+
+function citeMap() {
+  oldFormHide();
+  var template = &quot;cite map&quot;;
+  numforms++;
+  var form = '&lt;div id=&quot;citediv'+numforms+'&quot;&gt;'+
+    '&lt;fieldset&gt;&lt;legend&gt;Cite map&lt;/legend&gt;'+
+    '&lt;table cellspacing=&quot;5&quot;&gt;'+
+    '&lt;input type=&quot;hidden&quot; value=&quot;'+template+'&quot; id=&quot;template&quot;&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;publisher&quot;&gt;&amp;nbsp;Publisher: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;publisher&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;title&quot;&gt;&amp;nbsp;Title: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;title&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;url&quot;&gt;&amp;nbsp;URL: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;url&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;accessdate&quot;&gt;&amp;nbsp;Access date: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;accessdate&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;edition&quot;&gt;&amp;nbsp;Edition: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;edition&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;date&quot;&gt;&amp;nbsp;Date or year: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;date&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;cartography&quot;&gt;&amp;nbsp;Cartography: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;cartography&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;scale&quot;&gt;&amp;nbsp;Scale: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;scale&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;series&quot;&gt;&amp;nbsp;Series: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;series&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;page&quot;&gt;&amp;nbsp;Page: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;page&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;section&quot;&gt;&amp;nbsp;Section: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;section&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;inset&quot;&gt;&amp;nbsp;Inset: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;inset&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;isbn&quot;&gt;&amp;nbsp;ISBN: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;isbn&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;refname&quot;&gt;&amp;nbsp;Reference name: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;refname&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;/table&gt;'+
+    '&lt;input type=&quot;button&quot; value=&quot;Add citation&quot; onClick=&quot;addcites()&quot;&gt;'+
+	' &lt;input type=&quot;button&quot; value=&quot;Preview citation&quot; onClick=&quot;previewCitationDefault()&quot;&gt; \
+	&lt;img id=&quot;progress&quot; src=&quot;//upload.wikimedia.org/wikipedia/commons/5/59/RefToolbar_spinning_throbber.gif&quot; style=&quot;visibility: hidden&quot; /&gt;'+
+    '&lt;input type=&quot;checkbox&quot; tabindex=1 name=&quot;verbose&quot; id=&quot;verbose&quot; value=&quot;verbose&quot;&gt;&lt;label for=&quot;verbose&quot;&gt;Vertical form&lt;/label&gt;'+
+    '&lt;span style=&quot;float:right&quot;&gt;&lt;a href=&quot;//en.wikipedia.org/wiki/Template:'+template.replace(/ /g, '_')+'&quot; target=&quot;_blank&quot;&gt;[Template documentation]&lt;/a&gt;&lt;/span&gt;'+
+    '&lt;/fieldset&gt;&lt;span id=&quot;previewSpan&quot;&gt;&lt;/span&gt;&lt;/div&gt;';
+   document.getElementById('refToolFormArea').innerHTML = form;
+}
+
+function showRefSectionOptions() {
+  oldFormHide();
+  var template = &quot;cite encyclopedia&quot;;
+  numforms++;
+  var form = '&lt;div id=&quot;citediv'+numforms+'&quot;&gt;'+
+    '&lt;fieldset&gt;&lt;legend&gt;Add references section&lt;/legend&gt;\
+	Headline:&lt;br /&gt;\
+	&lt;input id=&quot;references&quot; name=&quot;headline&quot; type=&quot;radio&quot; tabindex=1 checked=&quot;checked&quot;&gt;&lt;label for=&quot;references&quot;&gt;== References ==&lt;/label&gt;&lt;br /&gt; \
+	&lt;input id=&quot;notes&quot; name=&quot;headline&quot; type=&quot;radio&quot; tabindex=1&gt;&lt;label for=&quot;notes&quot;&gt;== Notes ==&lt;/label&gt;&lt;br /&gt; \
+	Type:&lt;br /&gt; \
+	&lt;input id=&quot;type-references&quot; name=&quot;type&quot; type=&quot;radio&quot; tabindex=1&gt;&lt;label for=&quot;type-references&quot;&gt;&amp;lt;references/&amp;gt;&lt;/label&gt;&lt;br /&gt; \
+	&lt;input id=&quot;type-reflist&quot; name=&quot;type&quot; type=&quot;radio&quot; tabindex=1 checked=&quot;checked&quot;&gt;&lt;label for=&quot;type-reflist&quot;&gt;{{Reflist}}&lt;/label&gt;&lt;br /&gt; \
+	&lt;input id=&quot;type-reflist2&quot; name=&quot;type&quot; type=&quot;radio&quot; tabindex=1&gt;&lt;label for=&quot;type-reflist2&quot;&gt;{{Reflist|2}}&lt;/label&gt;&lt;br /&gt; \
+	&lt;input type=&quot;checkbox&quot; tabindex=1 id=&quot;ldr&quot;&gt;&lt;label for=&quot;ldr&quot;&gt;List-defined references&lt;/label&gt; (&lt;a href=&quot;//en.wikipedia.org/wiki/Wikipedia:Footnotes#List-defined_references&quot; target=&quot;_blank&quot;&gt;Info 1&lt;/a&gt;, &lt;a href=&quot;//en.wikipedia.org/wiki/Help:Footnotes#List-defined_references&quot; target=&quot;_blank&quot;&gt;Info 2&lt;/a&gt;)&lt;br /&gt;\
+    &lt;input type=&quot;button&quot; value=&quot;Add references section&quot; onClick=&quot;addRefSection()&quot;&gt;'+
+ '&lt;/fieldset&gt;&lt;/div&gt;';
+   document.getElementById('citeselect').innerHTML += form;
+}
+
+function makeCiteCode() {
+  cites = document.getElementById('citediv'+numforms).getElementsByTagName('input');
+  var template = '';
+  var citebegin = '&lt;ref';
+  var citename = '';
+  var citeinner = '';
+  for (var i=0; i&lt;cites.length; i++) {
+    var citeid = cites[i].id;
+    var citevalue = cites[i].value;
+    citevalue = citevalue.trim();    //Trim leading and trailing whitespace
+    if (citeid == &quot;verbose&quot;) {
+	  if (cites[i].checked) {
+	    citeinner = citeinner.replace(/\|/g, &quot;\n|&quot;);
+	  }
+    }
+    else if (citevalue !== '' &amp;&amp; cites[i].type !== 'button' &amp;&amp; cites[i].type !== 'image') {
+      if (citeid === &quot;refname&quot;) {
+        citebegin += ' name=&quot;' + citevalue + '&quot;';
+      }
+      else if (citeid == &quot;template&quot;) {
+        citename = '&gt;{{' + citevalue;
+        template = citevalue;
+      }
+      else {
+        if (citeid === &quot;pages&quot;) {
+          if (citevalue.match(/^\w+$/) &amp;&amp; template != 'cite encyclopedia') {
+            citeid = &quot;page&quot;;    //Use page= instead of pages= if only one page. Makes p. 5 instead of pp. 5.
+          }
+          else {
+            citevalue = citevalue.replace(/-/g, &quot;–&quot;);    //Replace hyphens with en dashes [[WP:ENDASH]]
+          }
+        }
+        else if (citeid == &quot;date&quot; &amp;&amp; citevalue.match(/^\d\d\d\d$/)) {
+          citeid = &quot;year&quot;;  // Use year= instead of date= if only the year is specified
+        }
+        citeinner += &quot;|&quot; + citeid + &quot;=&quot; + citevalue;
+      }
+    }
+  }
+  cite = citebegin + citename + citeinner + &quot;}}&lt;/ref&gt;&quot;;
+  return cite;
+}
+
+function addcites(template) {
+  var cite = makeCiteCode();
+  $(&quot;#wpTextbox1&quot;).focus();
+  insertTags(cite, '', '');
+  //document.getElementById('citediv'+numforms).style.display = 'none';
+  oldFormHide();
+}
+
+function addRefSection() {
+	var wikicode = &quot;\n&quot;;
+	if (document.getElementById('references').checked) {
+		wikicode += &quot;== References ==\n&quot;;
+	}
+	else if (document.getElementById('notes').checked) {
+		wikicode += &quot;== Notes ==\n&quot;;
+	}
+	else {alert('No headline selected!');}
+	
+	if (document.getElementById('type-references').checked) {
+		if (document.getElementById('ldr').checked) {
+			wikicode += &quot;&lt;references&gt;\n\n&lt;/references&gt;\n&quot;;
+		}
+		else {
+			wikicode += &quot;&lt;references/&gt;\n&quot;;
+		}
+	}
+	else if (document.getElementById('type-reflist').checked || document.getElementById('type-reflist2').checked) {
+		var col2 = document.getElementById('type-reflist2').checked ? '|2' : '' ;
+		if (document.getElementById('ldr').checked) {
+			wikicode += &quot;{{Reflist&quot; + col2 + &quot;|refs=\n\n}}\n&quot;;
+		}
+		else {
+			wikicode += &quot;{{Reflist&quot; + col2 + &quot;}}\n&quot;;
+		}
+	}
+	else {alert('No type selected!');}
+	$(&quot;#wpTextbox1&quot;).focus();
+	insertTags(wikicode, '', '');
+	document.getElementById('citediv'+numforms).innerHTML = '';
+}
+
+function getNamedRefs(calls) {
+  if (typeof(wikEdUseWikEd) != 'undefined') {
+    if (wikEdUseWikEd == true) {
+      WikEdUpdateTextarea();
+    }
+  }
+  text = document.getElementById('wpTextbox1').value;
+  var regex;
+  if (calls) {
+    regex = /&lt; *?ref +?name *?= *?(('([^']*?)')|(&quot;([^&quot;]*?)&quot;)|([^'&quot;\s]*?[^\/]\b)) *?\/ *?&gt;/gi //'
+  } else {
+    regex = /&lt; *?ref +?name *?= *?(('([^']*?)')|(&quot;([^&quot;]*?)&quot;)|([^'&quot;\s]*?[^\/]\b)) *?&gt;/gi //'
+  }
+  var namedrefs = new Array();
+  var i=0;
+  var nr=true;
+  do {
+    ref = regex.exec(text);
+    if(ref != null){
+      if (ref[5]) {
+        namedrefs[i] = ref[5];
+      } else if (ref[3]) {
+        namedrefs[i] = ref[3];
+      } else {
+        namedrefs[i] = ref[6];
+      }
+      i++;
+    } else {
+      nr=false;
+    }
+  } while (nr==true);
+  return namedrefs;
+}
+
+function citeNamedRef() {
+  var namedrefs = getNamedRefs(false);
+  if (namedrefs == '') {
+    oldFormHide();
+    numforms++;
+    var out = '&lt;div id=&quot;citediv'+numforms+'&quot;&gt;&lt;fieldset&gt;'+
+      '&lt;legend&gt;References in text&lt;/legend&gt;There are no named refs (&lt;tt&gt;&amp;lt;ref name=&quot;Name&quot;&amp;gt;&lt;/tt&gt;) in the text&lt;/fieldset&gt;&lt;/div&gt;';
+    document.getElementById('citeselect').innerHTML += out;
+  }
+  else {
+    oldFormHide();
+    numforms++;
+    var form = '&lt;div id=&quot;citediv'+numforms+'&quot;&gt;'+
+      '&lt;fieldset&gt;&lt;legend&gt;References in article&lt;/legend&gt;'+
+      '&lt;table cellspacing=&quot;5&quot;&gt;'+
+      '&lt;tr&gt;&lt;td&gt;&lt;label for=&quot;namedrefs&quot;&gt;&amp;nbsp;Named references in text&lt;/label&gt;&lt;/td&gt;'+
+            '&lt;td&gt;&lt;select name=&quot;namedrefs&quot; id=&quot;namedrefs&quot;&gt;';
+    for (var i=0;i&lt;namedrefs.length;i++) {
+      form+= '&lt;option value=&quot;'+namedrefs[i]+'&quot;&gt;'+namedrefs[i]+'&lt;/option&gt;';
+    }
+    form+= '&lt;/select&gt;'+
+      '&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;'+
+      '&lt;input type=&quot;button&quot; value=&quot;Add citation&quot; onClick=&quot;addnamedcite()&quot;&gt;'+
+      '&lt;/fieldset&gt;&lt;/div&gt;';
+     document.getElementById('citeselect').innerHTML += form;
+  }
+}
+
+function addnamedcite() {
+  var name = document.getElementById('citediv'+numforms).getElementsByTagName('select')[0].value;
+  var ref = '&lt;ref name=&quot;'+name+'&quot; /&gt;';
+  $(&quot;#wpTextbox1&quot;).focus();
+  insertTags(ref, '', '');
+  document.getElementById('citediv'+numforms).style.display = 'none';
+}
+
+function getAllRefs() {
+  if (typeof(wikEdUseWikEd) != 'undefined') {
+    if (wikEdUseWikEd == true) {
+      WikEdUpdateTextarea();
+    }
+  }
+  var text = document.getElementById('wpTextbox1').value;
+  var regex = /&lt; *?ref( +?name *?= *?(('([^']*?)')|(&quot;([^&quot;]*?)&quot;)|([^'&quot;\s]*?[^\/]\b)))? *?&gt;((.|\n)*?)&lt; *?\/? *?ref *?&gt;/gim //&quot;
+  var allrefs = new Array();
+  var i=0;
+  var nr=true;
+  do {
+    ref = regex.exec(text);
+    if(ref != null){
+      if (ref[0].search(/[^\s]{150}/) != -1) {
+        ref[0] = ref[0].replace(/\|([^\s])/g, &quot;| $1&quot;);
+      }
+      ref[0] = ref[0].replace(/&lt;/g, &quot;&amp;lt;&quot;);
+      ref[0] = ref[0].replace(/&gt;/g, &quot;&amp;gt;&quot;);
+      allrefs[i] = ref[0];
+      i++;
+    } else {
+      nr=false;
+    }
+  } while (nr==true);
+  return allrefs;
+}
+
+function NRcallError(namedrefs, refname) {
+  for (var i=0; i&lt;namedrefs.length; i++) {
+    if (namedrefs[i] == refname) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function errorCheck() {
+  var allrefs = getAllRefs();
+  var allrefscontent = new Array();
+  var samecontentexclude = new Array();
+  var sx=0;
+  var templateexclude = new Array();
+  var tx=0;
+  var skipcheck = false;
+  var namedrefcalls = getNamedRefs(true);
+  for (var i=0; i&lt;allrefs.length; i++) {
+    allrefscontent[i] = allrefs[i].replace(/&amp;lt; *?ref( +?name *?= *?(('([^']*?)')|(&quot;([^&quot;]*?)&quot;)|([^'&quot;\s]*?[^\/]\b)))? *?&amp;gt;((.|\n)*?)&amp;lt; *?\/? *?ref *?&amp;gt;/gim, &quot;$8&quot;);  //&quot;
+  }
+  var namedrefs = getNamedRefs(false);
+  var errorlist = new Array();
+  var q=0;
+  var unclosed = document.getElementById('unclosed').checked;
+  var samecontent = document.getElementById('samecontent').checked;
+  var templates = document.getElementById('templates').checked;
+  var repeated = document.getElementById('repeated').checked;
+  var undef = document.getElementById('undef').checked;
+  for (var i=0; i&lt;allrefs.length; i++) {
+    if (allrefs[i].search(/&amp;lt; *?\/ *?ref *?&amp;gt;/) == -1 &amp;&amp; unclosed) {
+      errorlist[q] = '&lt;tr&gt;&lt;td width=&quot;75%&quot;&gt;&lt;tt&gt;'+allrefs[i]+'&lt;/tt&gt;&lt;/td&gt;';
+      errorlist[q] += '&lt;td width=&quot;25%&quot;&gt;Unclosed &lt;tt&gt;&amp;lt;ref&amp;gt;&lt;/tt&gt; tag&lt;/td&gt;&lt;/tr&gt;';
+      q++;
+    }
+    if (samecontent) {
+      for (var d=0; d&lt;samecontentexclude.length; d++) {
+        if (allrefscontent[i] == samecontentexclude[d]) {
+          skipcheck = true;
+        }
+      }
+      var p=0;
+      while (p&lt;allrefs.length &amp;&amp; !skipcheck) {
+        if (allrefscontent[i] == allrefscontent[p] &amp;&amp; i != p) {
+          errorlist[q] = '&lt;tr&gt;&lt;td width=&quot;75%&quot;&gt;&lt;tt&gt;'+allrefscontent[i]+'&lt;/tt&gt;&lt;/td&gt;';
+          errorlist[q] += '&lt;td width=&quot;25%&quot;&gt;Multiple refs contain this content, a &lt;a href=&quot;//en.wikipedia.org/wiki/Wikipedia:Footnotes#Naming_a_ref_tag_so_it_can_be_used_more_than_once&quot;&gt;named reference&lt;/a&gt; should be used instead&lt;/td&gt;&lt;/tr&gt;';
+          q++;
+          samecontentexclude[sx] = allrefscontent[i]
+          sx++;
+          break;
+        }
+        p++;
+      }
+     skipcheck=false;
+    }
+    if (templates) {
+      if (allrefscontent[i].search(/\{\{cite/i) == -1 &amp;&amp; allrefscontent[i].search(/\{\{citation/i) == -1 &amp;&amp; allrefscontent[i].search(/\{\{Comic (book|strip) reference/i) == -1 &amp;&amp; allrefscontent[i].search(/\{\{Editorial cartoon reference/i) == -1 &amp;&amp; allrefscontent[i].search(/\{\{harv/i) == -1) {
+        for (var x=0; x&lt;templateexclude.length; x++) {
+          if (allrefscontent[i] == templateexclude[x]) {
+            skipcheck = true;
+          }
+        }
+        if (!skipcheck) {
+          errorlist[q] = '&lt;tr&gt;&lt;td width=&quot;75%&quot;&gt;&lt;tt&gt;'+allrefs[i]+'&lt;/tt&gt;&lt;/td&gt;';
+          errorlist[q] += '&lt;td width=&quot;25%&quot;&gt;Does not use a &lt;a href=&quot;//en.wikipedia.org/wiki/Wikipedia:Citation_templates&quot;&gt;citation template&lt;/a&gt;&lt;/td&gt;&lt;/tr&gt;';
+          q++;
+          templateexclude[tx] = allrefscontent[i];
+          tx++;
+        }
+        skipcheck = false;
+      }
+    }
+  }
+  if (repeated) {
+    var repeatnameexclude = new Array();
+    var rx=0;
+    for (var k=0; k&lt;namedrefs.length; k++) {
+      for (var d=0; d&lt;repeatnameexclude.length; d++) {
+        if (namedrefs[k] == repeatnameexclude[d]) {
+          skipcheck = true;
+        }
+      }
+      var z=0;
+      while (z&lt;namedrefs.length &amp;&amp; !skipcheck) {
+        if (namedrefs[k] == namedrefs[z] &amp;&amp; k != z) {
+          errorlist[q] = '&lt;tr&gt;&lt;td width=&quot;75%&quot;&gt;&lt;tt&gt;'+namedrefs[k]+'&lt;/tt&gt;&lt;/td&gt;';
+          errorlist[q] += '&lt;td width=&quot;25%&quot;&gt;Multiple references are given the same &lt;a href=&quot;//en.wikipedia.org/wiki/Wikipedia:Footnotes#Naming_a_ref_tag_so_it_can_be_used_more_than_once&quot;&gt;name&lt;/a&gt;&lt;/td&gt;&lt;/tr&gt;';
+          q++;
+          repeatnameexclude[rx] = namedrefs[z];
+          rx++;
+          break;
+        }
+        z++;
+      }
+     skipcheck = false;
+    }
+  }
+  if (undef) {
+    var undefexclude = new Array();
+    var ux=0;
+    for (var p=0; p&lt;namedrefcalls.length; p++) {
+      for (var d=0; d&lt;undefexclude.length; d++) {
+        if (allrefscontent[i] == undefexclude[d]) {
+          skipcheck = true;
+        }
+      }
+      if (!skipcheck) {
+        if (!NRcallError(namedrefs, namedrefcalls[p])) {
+          errorlist[q] = '&lt;tr&gt;&lt;td width=&quot;75%&quot;&gt;&lt;tt&gt;'+namedrefcalls[p]+'&lt;/tt&gt;&lt;/td&gt;';
+          errorlist[q] += '&lt;td width=&quot;25%&quot;&gt;A &lt;a href=&quot;//en.wikipedia.org/wiki/Wikipedia:Footnotes#Naming_a_ref_tag_so_it_can_be_used_more_than_once&quot;&gt;named reference&lt;/a&gt; is used but not defined&lt;/td&gt;&lt;/tr&gt;';
+          q++;
+          undefexclude[ux] = namedrefs[p];
+          ux++;
+        }
+      }
+      skipcheck = false;
+    }
+ }
+  if (q &gt; 0) {
+    return errorlist;
+  } else {
+    return 0;
+  }
+}
+
+function dispErrors() {
+  oldFormHide();
+  var form = '&lt;div id=&quot;errorform&quot;&gt;&lt;fieldset&gt;'+
+    '&lt;legend&gt;Error checking&lt;/legend&gt;'+
+    '&lt;b&gt;Check for:&lt;/b&gt;&lt;br/&gt;'+
+    '&lt;input type=&quot;checkbox&quot; id=&quot;unclosed&quot; /&gt; Unclosed &lt;tt&gt;&amp;lt;ref&amp;gt;&lt;/tt&gt; tags&lt;br/&gt;'+
+    '&lt;input type=&quot;checkbox&quot; id=&quot;samecontent&quot; /&gt; References with the same content&lt;br/&gt;'+
+    '&lt;input type=&quot;checkbox&quot; id=&quot;templates&quot; /&gt; References not using a &lt;a href=&quot;//en.wikipedia.org/wiki/Wikipedia:Citation_templates&quot;&gt;citation template&lt;/a&gt;&lt;br/&gt;'+
+    '&lt;input type=&quot;checkbox&quot; id=&quot;repeated&quot; /&gt; Multiple references with the same name&lt;br/&gt;'+
+    '&lt;input type=&quot;checkbox&quot; id=&quot;undef&quot; /&gt; Usage of undefined named references&lt;br/&gt;'+
+    '&lt;input type=&quot;button&quot; id=&quot;errorchecksubmit&quot; value=&quot;Check for selected errors&quot; onclick=&quot;doErrorCheck()&quot;/&gt;'+
+    '&lt;/fieldset&gt;&lt;/div&gt;';
+  document.getElementById('citeselect').innerHTML += form;
+}
+
+function doErrorCheck() {
+  var errors = errorCheck();
+  document.getElementById('citeselect').removeChild(document.getElementById('errorform'));
+  if (errors == 0) {
+    if (numforms != 0) {
+      document.getElementById('citediv'+numforms).style.display = 'none';
+    }
+    numforms++;
+    out = '&lt;div id=&quot;citediv'+numforms+'&quot;&gt;&lt;fieldset&gt;'+
+      '&lt;legend&gt;Error checking&lt;/legend&gt;No errors found.&lt;/fieldset&gt;&lt;/div&gt;';
+    document.getElementById('citeselect').innerHTML += out;
+  }
+  else {
+    if (numforms != 0) {
+      document.getElementById('citediv'+numforms).style.display = 'none';
+    }
+    numforms++;
+    form = '&lt;div id=&quot;citediv'+numforms+'&quot;&gt;'+
+      '&lt;fieldset&gt;&lt;legend&gt;Error checking&lt;/legend&gt;'+
+      '&lt;table border=&quot;1px&quot;&gt;';
+    for (var i=0; i&lt;errors.length; i++) {
+      form+=errors[i];
+    }
+    form+= '&lt;/table&gt;'+
+      '&lt;/fieldset&gt;&lt;/div&gt;';
+     document.getElementById('citeselect').innerHTML += form;
+  }
+}
+
+function makeBookCitationCode(callback) {
+  var cite = '&lt;ref';
+  var refname = document.getElementById('refname').value;
+  if (/\S/.test(refname)) {
+    cite += ' name=&quot;' + refname + '&quot;';
+  }
+  cite += '&gt;{{';
+  
+  if (document.getElementById('cite_book').checked || document.getElementById('plain').checked) {
+    cite += 'cite book';
+  }
+  else if (document.getElementById('citation').checked) {
+    cite += 'citation';
+  }
+  else {alert('No template selected.');}
+  
+  var authorcite = '';
+  var prevauthor = 0;
+  for (var i=3;i&gt;=1;i--) {
+    //var author = document.getElementById('author' + i).value;
+    var last = document.getElementById('last' + i).value;
+    var first = document.getElementById('first' + i).value;
+    var authorlink = document.getElementById('authorlink' + i).value;
+    if (i==1 &amp;&amp; !prevauthor) { i = ''; }
+    if (/\S/.test(authorlink)) {
+      authorcite = '|authorlink' + i + '=' + authorlink + authorcite;
+    }
+    if (/\S/.test(last)) {
+      authorcite = '|last' + i + '=' + last + '|first' + i + '=' + first + authorcite;
+      prevauthor = 1;
+    }
+    /*else if (/\S/.test(author)) {
+      authorcite = '|author' + i + '=' + author + authorcite;
+      prevauthor = 1;
+    }*/
+  }
+  cite += authorcite;
+
+  var simplefields = [&quot;coauthors&quot;, &quot;editor&quot;, &quot;others&quot;, &quot;title&quot;, &quot;url&quot;, &quot;accessdate&quot;,&quot;edition&quot;,&quot;series&quot;,&quot;volume&quot;,&quot;date&quot;,&quot;publisher&quot;,&quot;location&quot;,&quot;language&quot;,&quot;isbn&quot;,&quot;pages&quot;,&quot;chapter&quot;];
+  for (var i=0;i&lt;simplefields.length;i++) {
+    var fieldname = simplefields[i];
+    var value = document.getElementById(fieldname).value;
+    if (/\S/.test(value) || fieldname == &quot;title&quot;) {
+      if (fieldname == &quot;pages&quot;) {
+        if (/^\w+$/.test(value)) {
+          fieldname = &quot;page&quot;;    //Use page= instead of pages= if only one page. Makes p. 5 instead of pp. 5.
+        }
+        else {
+          value = value.replace(/-/g, &quot;–&quot;);      //Replace hyphens with en dashes [[WP:ENDASH]]
+          value = value.replace(/,\s*\s?/g, &quot;, &quot;);  //One space after each comma
+        }
+      }
+      else if (fieldname == &quot;date&quot; &amp;&amp; /^\d\d\d\d$/.test(value)) {
+        fieldname = &quot;year&quot;;  // Use year= instead of date= if only the year is specified
+      }
+      cite += '|' + fieldname + '=' + value;
+    }
+  }
+ 
+
+  var otherfields = document.getElementById('otherfields').value;
+  if (/\S/.test(otherfields)) {
+    cite += '|' + otherfields;
+  }
+  
+  if (document.getElementById('extraparams').checked) {
+    cite += '|authormask=';
+    if (!document.getElementById('citation').checked) {
+      cite += '|trans_title=';
+    }
+    cite += '|format=';
+    cite += '|origyear=';
+    cite += '|oclc=';
+    cite += '|doi=';
+    cite += '|bibcode=';
+    cite += '|id=';
+    if (/\S/.test(document.getElementById('chapter').value)) {
+      if (!document.getElementById('citation').checked) {
+        cite += '|trans_chapter=';
+      } 
+      cite += '|chapterurl=';
+    }
+    cite += '|quote=';
+    cite += '|laysummary=';
+    cite += '|laydate=';
+  }
+
+  cite += &quot;}}&lt;/ref&gt;&quot;;
+  
+  
+  if (document.getElementById('plain').checked) {
+    var match = /^(.*?)({{.*}})(.*?)$/.exec(cite);
+    if (match) {
+      var citebeg = match[1];
+      var citemid = match[2];
+      var citeend = match[3];
+      citemid = citemid.replace(/cite book/, &quot;Vancite book&quot;);
+      //alert(citebeg + ':::' + citemid + ':::' + citeend);
+      //document.getElementById('fullcite').value = 'Updating...';
+      var url = 'api.php?action=expandtemplates&amp;format=xml&amp;text=' + encodeURIComponent(citemid);
+      document.getElementById('progress').style.visibility = &quot;visible&quot;;
+      var xmlhttpExpand = new XMLHttpRequest();
+      xmlhttpExpand.onreadystatechange=function() {
+		if(xmlhttpExpand.readyState==4) {	  
+			if(xmlhttpExpand.status==200) {
+				document.getElementById('progress').style.visibility = &quot;hidden&quot;;
+				var xmlDoc=xmlhttpExpand.responseXML.documentElement;
+				var expanded = xmlDoc.getElementsByTagName(&quot;expandtemplates&quot;)[0].textContent;
+				if (expanded == undefined) {
+					expanded = xmlDoc.getElementsByTagName(&quot;expandtemplates&quot;)[0].childNodes[0].nodeValue;
+				}
+				expanded = expanded.replace(/&lt;span.*?&gt;/ig, '');
+				expanded = expanded.replace(/&lt;\/span&gt;/ig, '');
+				expanded = expanded.replace(/&lt;nowiki\/?&gt;/ig, '');
+				expanded = expanded.replace(/\&amp;\#32\;/ig, ' ');
+				expanded = expanded.replace(/\&amp;\#59\;/ig, ';');
+				expanded = expanded.replace(/\&amp;\#91\;/ig, '[');
+				expanded = expanded.replace(/\&amp;\#93\;/ig, ']');
+				
+				plaincite = citebeg + expanded + citeend;
+				//alert(plaincite);
+				callback(plaincite);
+			}
+			else
+				alert('The query returned an error.');
+		}
+      }
+      xmlhttpExpand.open(&quot;GET&quot;,url,true);
+      xmlhttpExpand.send(null);
+    }
+    else {alert('Error A1');}
+  }
+  else {
+    if (document.getElementById('verbose').checked) {
+      cite = cite.replace(/\|/g, &quot;\n|&quot;);
+    }
+    callback(cite);
+  }
+}
+
+function makeCiteBook() {
+  makeBookCitationCode(function(cite) { 
+    $(&quot;#wpTextbox1&quot;).focus();
+    insertTags(cite, '', ''); 
+    if (!refToolDebug) { oldFormHide(); }
+  });
+}
+
+function formatDate(datein, dateformat) {
+  if (dateformat == '') {return (datein);}
+  datein = datein.replace(/^\s*(.*?)\s*$/, &quot;$1&quot;);  //Trim whitespace
+  var year = -1;
+  var month = -1;
+  var date = -1;
+  var match = /^(\d\d\d\d)-(\d\d?)(-(\d\d?))?$/.exec(datein);
+  if(match) {
+    //alert(' match[1]=' + match[1] + ' match[2]=#' + match[2] + '# match[3]=' + match[3] + ' match[4]=' + match[4]  );
+    year = parseInt(match[1], 10);	//10 forces decimal conversion
+    month = parseInt(match[2], 10);
+    if (match[4]) {
+      date = parseInt(match[4], 10);
+    }
+  }
+  else if (/^\d\d? \w+ \d\d\d\d$/.test(datein) || /^\w+ \d\d?, \d\d\d\d$/.test(datein)) {
+    var DT = new Date(datein);
+    year = DT.getUTCFullYear();
+    month = DT.getUTCMonth()+1;
+    date = DT.getUTCDate()+1;
+  }
+  else if (datein == 'today') {
+    var DT = new Date();
+    year = DT.getUTCFullYear();
+    month = DT.getUTCMonth()+1;
+    date = DT.getUTCDate();
+  }
+  else {return (datein);}
+  //alert('datein=' + datein + ', y=' + year + ', m=' + month + ', d=' + date);
+
+  var zmonth = '';
+  if (month &lt; 10) {
+    zmonth = &quot;0&quot;+month.toString();
+  } else {
+    zmonth = month.toString();
+  }
+  month = month.toString();
+  var zdate = '';
+  if (date &gt; -1) {
+    if (date &lt; 10) {
+      zdate = &quot;0&quot;+date.toString();
+    } else {
+      zdate = date.toString();
+    }
+    date = date.toString()
+  }
+  else { date = ''; }
+  
+  var datestr = dateformat;
+  datestr = datestr.replace('&lt;date&gt;', date);
+  datestr = datestr.replace('&lt;month&gt;', month);
+  datestr = datestr.replace('&lt;zdate&gt;', zdate);
+  datestr = datestr.replace('&lt;zmonth&gt;', zmonth);
+  datestr = datestr.replace('&lt;monthname&gt;', months[month-1]);
+  datestr = datestr.replace('&lt;year&gt;', year.toString());
+  datestr = datestr.replace(/\s+/, ' ').replace(/^\s+/, '').replace(/(\D),/, '$1').replace(/-$/, '');
+  return (datestr);
+}
+
+
+function getDateFormat() {
+	var dateformat = '';
+	if (document.getElementById('dmy')){
+		if (document.getElementById('dmy').checked) {dateformat = '&lt;date&gt; &lt;monthname&gt; &lt;year&gt;'}
+		else if (document.getElementById('mdy').checked) {dateformat = '&lt;monthname&gt; &lt;date&gt;, &lt;year&gt;'}
+		else if (document.getElementById('ymd').checked) {dateformat = '&lt;year&gt;-&lt;zmonth&gt;-&lt;zdate&gt;'}
+	}
+	else if (citeUserDateFormat) {
+		dateformat = citeUserDateFormat;
+	} else {
+		dateformat = citeGlobalDateFormat;
+	}
+	return (dateformat);
+}
+
+function reformatDates() {
+  var dateformat = getDateFormat();
+  //alert(':' + dateformat + ':');
+  document.getElementById('accessdate').value = formatDate(document.getElementById('accessdate').value, dateformat);
+  document.getElementById('date').value = formatDate(document.getElementById('date').value, dateformat);
+  //document.getElementById('dateformat_hidden').value = getDateFormatShort();
+}
+
+/*function updateGetButton() {
+	document.getElementById('urlget').disabled = document.getElementById('url').value == '';
+}*/
+
+function preview(wikitext) {
+    document.getElementById('progress').style.visibility = &quot;visible&quot;;
+    wikitext += '&lt;references /&gt;';
+    var url = &quot;api.php?action=parse&amp;format=xml&amp;prop=text&amp;text=&quot; + encodeURIComponent(wikitext);
+    var xmlhttp = new XMLHttpRequest();
+	xmlhttp.onreadystatechange = function () {
+		if (xmlhttp.readyState==4) {
+			if(xmlhttp.status==200) {
+				document.getElementById('progress').style.visibility = &quot;hidden&quot;;
+				var xmlDoc=xmlhttp.responseXML.documentElement;
+				var previewHTML = xmlDoc.getElementsByTagName(&quot;text&quot;)[0].textContent;
+				if (previewHTML == undefined) {
+					previewHTML = xmlDoc.getElementsByTagName(&quot;text&quot;)[0].childNodes[0].nodeValue;
+				}
+				//alert(previewHTML);
+				previewHTML = previewHTML.replace(/href=&quot;\//gi, 'href=&quot;//en.wikipedia.org/');
+				document.getElementById('previewSpan').innerHTML = '&lt;fieldset&gt;&lt;legend&gt;Citation preview&lt;/legend&gt;' + previewHTML + '&lt;/fieldset&gt;';
+			}
+			else
+				alert('The query returned an error.');
+		}
+    };
+    xmlhttp.open(&quot;GET&quot;, url, true);
+    xmlhttp.send(null)
+}
+
+function previewCitationBook() {
+  makeBookCitationCode(preview);
+}
+
+function previewCitationDefault() {
+	var wikitext = makeCiteCode();
+	preview(wikitext);
+}
+
+function pullJs() {
+	var book_url = document.getElementById('url').value;
+   	if (book_url) {
+		document.getElementById('progress').style.visibility = &quot;visible&quot;;
+		var book_url_enc = encodeURIComponent(book_url);
+		if(!refTagURL) {refTagURL = defaultRefTagURL;}
+		var baseurl = refTagURL + 'googlebooksjs.py';
+		var url = baseurl + '?book_url=' + book_url_enc + '&amp;callback=setFormValues';
+		/*var script = document.createElement(&quot;script&quot;);        
+		script.setAttribute(&quot;src&quot;,url);
+		script.setAttribute(&quot;type&quot;,&quot;text/javascript&quot;);                
+		document.body.appendChild(script);*/
+		JsonRequest(url);
+	}else{
+		alert('No URL.');
+	}
+}
+
+function pullISBN() {
+	var isbn = document.getElementById('isbn').value;
+	isbn = isbn.replace(/[^0-9]/g,&quot;&quot;);	//Digits only
+   	if (isbn) {
+		document.getElementById('progress').style.visibility = &quot;visible&quot;;
+		if(!refTagURL) {refTagURL = defaultRefTagURL;}
+		var baseurl = refTagURL + 'getdiberri.py';
+		var url = baseurl + '?isbn=' + isbn + '&amp;callback=useDiberriData';
+		/*var script = document.createElement(&quot;script&quot;);
+		script.setAttribute(&quot;src&quot;,url);
+		script.setAttribute(&quot;type&quot;,&quot;text/javascript&quot;);
+		document.body.appendChild(script);*/
+		JsonRequest(url);
+	}else{
+		alert('No ISBN.');
+	}
+}
+
+function pullDOI() {
+	var doi = document.getElementById('doi').value;
+   	if (doi) {
+		document.getElementById('progress').style.visibility = &quot;visible&quot;;
+		if(!refTagURL) {refTagURL = defaultRefTagURL;}
+		var baseurl = refTagURL + 'doifetchjs.py';
+		var url = baseurl + '?doi=' + encodeURIComponent(doi) + '&amp;callback=useDoiData';
+		JsonRequest(url);
+	}else{
+		alert('No DOI.');
+	}
+}
+
+function pullPMID() {
+	alert('Not implemented yet...');
+	/*var doi = document.getElementById('doi').value;
+   	if (doi) {
+		document.getElementById('progress').style.visibility = &quot;visible&quot;;
+		if(!refTagURL) {refTagURL = defaultRefTagURL;}
+		var baseurl = refTagURL + 'doifetchjs.py';
+		var url = baseurl + '?doi=' + encodeURIComponent(doi) + '&amp;callback=useDoiData';
+		JsonRequest(url);
+	}else{
+		alert('No DOI.');
+	}*/
+}
+
+function pullURL() {
+	var url = document.getElementById('url').value;
+   	if (url) {
+		document.getElementById('progress').style.visibility = &quot;visible&quot;;
+		if(!refTagURL) {refTagURL = defaultRefTagURL;}
+		var baseurl = refTagURL + 'urlfetchjs.py';
+		var url = baseurl + '?url=' + encodeURIComponent(url) + '&amp;callback=useUrlData';
+		JsonRequest(url);
+	}else{
+		alert('No URl.');
+	}
+}
+
+function JsonRequest(url) {
+	//importScriptURI(url)  //Bad: does not import the same script more than once
+	var script = document.createElement(&quot;script&quot;);        
+	script.setAttribute(&quot;src&quot;,url);
+	script.setAttribute(&quot;type&quot;,&quot;text/javascript&quot;);                
+	//document.body.appendChild(script);
+	document.getElementsByTagName('head')[0].appendChild(script);
+}
+
+function setFormValues(bookdata) {
+	document.getElementById('progress').style.visibility = &quot;hidden&quot;;
+	//alert(bookdata);
+	//alert(bookdata.page);
+	if (bookdata.title.length != 0) { document.getElementById('title').value = bookdata.title; }
+	if (bookdata.isbn.length != 0) { document.getElementById('isbn').value = bookdata.isbn; }
+	if (bookdata.publisher.length != 0) { document.getElementById('publisher').value = bookdata.publisher; }
+	if (bookdata.pages.length != 0) { 
+		document.getElementById('pages').value = bookdata.pages; 
+		document.getElementById('pages').style.backgroundColor = '#FFFF99';
+	}
+	if (bookdata.url.length != 0) { document.getElementById('url').value = bookdata.url; }
+	if (bookdata.date.length != 0) { document.getElementById('date').value = bookdata.date; }
+
+	for (var i=0;i&lt;bookdata.authors.length &amp;&amp; i&lt;=2;i++) {
+		authorn = i+1;
+  		var author = bookdata.authors[i];
+  		var match = /(.+)\s+(.+)/.exec(author);
+		if (match) {
+			document.getElementById('first' + authorn).value = match[1];
+			document.getElementById('last' + authorn).value = match[2];
+		}
+		else {
+			document.getElementById('last' + authorn).value = author;
+		}
+  	}
+	document.getElementById('coauthors').value = bookdata.authors.splice(3).join(', ')
+	setAccessDateToday()
+	makeRefname()
+}
+
+function useDiberriData(bookdata) {
+	document.getElementById('progress').style.visibility = &quot;hidden&quot;;
+	if (bookdata.title.length != 0) { document.getElementById('title').value = bookdata.title; }
+	if (bookdata.isbn.length != 0) { document.getElementById('isbn').value = bookdata.isbn; }
+	if (bookdata.publisher.length != 0) { document.getElementById('publisher').value = bookdata.publisher; }
+	if (bookdata.location.length != 0) { document.getElementById('location').value = bookdata.location; }
+	if (bookdata.year.length != 0) { document.getElementById('date').value = bookdata.year; }
+	if (bookdata.authors.length != 0) {
+		authors = bookdata.authors.split(';', 4);
+		for (var i=0;i&lt;authors.length &amp;&amp; i&lt;=2;i++) {
+			authorn = i+1;
+	  		nameparts = authors[i].split(',', 2);
+			document.getElementById('last' + authorn).value = nameparts[0].trim();
+			if (nameparts.length == 2) {
+				document.getElementById('first' + authorn).value = nameparts[1].trim();
+			}
+		}
+		if (authors[3]) { document.getElementById('coauthors').value = authors[3].trim(); }
+	}
+	makeRefname()	
+}
+
+function useDoiData(bookdata) {
+	document.getElementById('progress').style.visibility = &quot;hidden&quot;;
+	if (bookdata.title) { document.getElementById('title').value = bookdata.title; }
+	//if (bookdata.isbn.length != 0) { document.getElementById('isbn').value = bookdata.isbn; }
+	//if (bookdata.publisher.length != 0) { document.getElementById('publisher').value = bookdata.publisher; }
+	//if (bookdata.location.length != 0) { document.getElementById('location').value = bookdata.location; }
+	if (bookdata.year) { document.getElementById('date').value = bookdata.year; }
+	if (bookdata.issn) { document.getElementById('issn').value = bookdata.issn; }
+	if (bookdata.journal) { document.getElementById('journal').value = bookdata.journal; }
+	if (bookdata.volume) { document.getElementById('volume').value = bookdata.volume; }
+	if (bookdata.issue) { document.getElementById('issue').value = bookdata.issue; }
+	if (bookdata.pages) { document.getElementById('pages').value = bookdata.pages; }
+
+	if (bookdata.authors) {
+		var coauthors = [];
+		for (var i=0;i&lt;bookdata.authors.length;i++) {
+			var authorn = i+1;
+			var author = bookdata.authors[i];
+			if (authorn == 1) {
+				if (author.last) { document.getElementById('last').value = author.last.trim(); }
+				if (author.first) { document.getElementById('first').value = author.first.trim(); }
+			}
+			else {
+				var authorparts = [];
+				if (author.first) { authorparts.push( author.first.trim() ); }
+				if (author.last) { authorparts.push( author.last.trim() ); }
+				coauthors.push(authorparts.join(' '));
+			}
+		}
+		if (coauthors[0]) { document.getElementById('coauthors').value = coauthors.join(', '); }
+	}
+	makeRefname();
+}
+
+function useUrlData(data) {
+	document.getElementById('progress').style.visibility = &quot;hidden&quot;;
+	if (data.title) { document.getElementById('title').value = data.title; }
+	if (data.work) { document.getElementById('work').value = data.work; }
+	if (data.page) { document.getElementById('pages').value = data.page; }
+	if (data.date) {
+		document.getElementById('date').value = formatDate(data.date, getDateFormat());
+	}
+	/*if (data.author) {
+		var authors = data.author.replace(/ [Aa]nd /, ', ');
+		var match = /(.+),\s*(.+)/.exec(authors);
+		var firstauthor = '';
+		if (match) {
+			firstauthor = match[1];
+			var coauthors = match[2];
+			document.getElementById('coauthors').value = coauthors;
+		}
+		else {
+			firstauthor = data.author;
+		}
+		var match = /(.+)\s+(.+)/.exec(firstauthor);
+		if (match) {
+			document.getElementById('first').value = match[1];
+			document.getElementById('last').value = match[2];
+		}
+		else {
+			document.getElementById('last').value = author;
+		}
+	}*/
+	if (data.authors) {
+		var coauthors = [];
+		for (var i=0;i&lt;data.authors.length;i++) {
+			var authorn = i+1;
+			var author = data.authors[i];
+			if (authorn == 1) {
+				var match = /(.+)\s+(.+)/.exec(author);
+				if (match) {
+					document.getElementById('first').value = match[1].trim();
+					document.getElementById('last').value = match[2].trim();
+				}
+				else {
+					document.getElementById('last').value = author.trim();
+				}
+			}
+			else {
+				coauthors.push(author);
+			}
+		}
+		if (coauthors[0]) { document.getElementById('coauthors').value = coauthors.join(', '); }
+	}
+}
+
+$( refbuttons );</text>
+      <sha1>46ldwgahon1m6n8pfr3hbmqgj7npm41</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>MediaWiki:RefToolbarMessages-en.js</title>
+    <ns>8</ns>
+    <id>30644312</id>
+    <revision>
+      <id>653624606</id>
+      <parentid>653624217</parentid>
+      <timestamp>2015-03-26T16:37:12Z</timestamp>
+      <contributor>
+        <username>Gadget850</username>
+        <id>339034</id>
+      </contributor>
+      <comment>cite-website</comment>
+      <model>javascript</model>
+      <format>text/javascript</format>
+      <text xml:space="preserve" bytes="5712">// All user-facing messages
+// TODO: Document usage
+mw.usability.addMessages( { 
+'cite-section-label' : 'Cite',
+'cite-template-list' : 'Templates',
+'cite-named-refs-label' : 'Named references',
+'cite-named-refs-title' : 'Insert a named reference',
+'cite-named-refs-button' : 'Named references',
+'cite-named-refs-dropdown' : 'Named references', // Used on the top of the named refs list dropdown
+'cite-errorcheck-label' : 'Error check',
+'cite-errorcheck-button' : 'Check for errors',
+'cite-dialog-web' : 'Web citation',
+'cite-dialog-news' : 'News citation',
+'cite-dialog-book' : 'Book citation',
+'cite-dialog-journal' : 'Journal citation',
+'cite-form-submit' : 'Insert',
+'cite-form-showhide' : 'Show/hide extra fields',
+'cite-no-namedrefs' : 'Cannot find any named references on the page',
+'cite-namedrefs-intro' : &quot;Select a name from the list to see the ref content. Click 'Insert' to insert a reference to it in the text.&quot;,
+'cite-raw-preview' : 'Wikitext:',
+'cite-parsed-label' : 'Parsed wikitext:',
+'cite-form-parse' : 'Show parsed preview',
+'cite-refpreview' : 'Preview',
+'cite-name-label' : 'Ref name',
+'cite-group-label' : 'Ref group',
+'cite-errorcheck-submit' : 'Check',
+'cite-errorcheck-heading' : 'Check for the following errors:',
+'cite-error-unclosed' : 'Unclosed &lt;span style=&quot;font-family:monospace&quot;&gt;&amp;lt;ref&amp;gt;&lt;/span&gt; tags',
+'cite-error-samecontent' : 'References with the same content',
+'cite-error-templates' : 'References not using a &lt;a href=&quot;//en.wikipedia.org/wiki/Wikipedia:Citation_templates&quot;&gt;citation template&lt;/a&gt;',
+'cite-error-repeated' : 'Multiple references with the same name',
+'cite-error-undef' : 'Usage of undefined named references',
+'cite-error-samecontent-msg' : 'Multiple refs contain the same content: $1',
+'cite-error-repeated-msg' : 'Multiple refs are given the name: \'$1\'',
+'cite-error-templates-msg' : 'Does not use a template: $1',
+'cite-form-reset' : 'Reset form',
+'cite-loading' : 'Loading data', // Shown while pagetext is being downloaded from the API
+'cite-insert-date' : 'Insert current date', // Alt/title text for 'insert date' icon
+'cite-err-report-heading' : 'Citation error report', // Heading for error report table
+'cite-err-report-close' : 'Close', // Alt/title text for 'close' icon on error report
+'cite-err-report-empty' : 'No errors found', // Message displayed in the error report list if there are no errors
+'cite-autofill-alt' : 'Autofill', // Alt text for autofill button image
+'cite-work-tooltip' : 'Name of journal, magazine, newspaper, periodical or website',
+'cite-authorlink-tooltip' : 'If the author has a Wikipedia article, the name of the article',
+'cite-at-tooltip' : 'Position within the resource (when page is inappropriate)',
+'cite-ref-tooltip' : 'ID for anchor (for creating a linkable reference)',
+'cite-postscript-tooltip' : 'If specified, overrides the default behavior of terminating the citation with a period',
+'cite-page-tooltip' : 'Page in the source that supports the content.',
+'cite-pages-tooltip' : 'Pages in the source that supports the content; separate page ranges with an en dash (–); separate non-sequential pages with a comma (,); do not use to indicate the total number of pages in the source.',
+'cite-website-tooltip' : 'Name of the website in full, not the URL',
+'cite-samecontent-desc' : 'References with the same content',
+'cite-samecontent-error' : 'Multiple references contain the same content',
+'cite-repeated-desc' : 'Multiple references with the same name',
+'cite-repeated-error' : 'Multiple references are using the same name',
+'cite-undefined-desc' : 'Usage of undefined named references',
+'cite-undefined-error' : 'A named reference is used but not defined',
+'cite-first-label' : 'First name',
+'cite-last-label' : 'Last name',
+'cite-title-label' : 'Title',
+'cite-work-label' : 'Work',
+'cite-newspaper-label' : 'Newspaper',
+'cite-journal-label' : 'Journal',
+'cite-publisher-label' : 'Publisher',
+'cite-accessdate-label' : 'Access date',
+'cite-author-label' : 'Author',
+'cite-authorlink-label' : &quot;Author's article&quot;,
+'cite-coauthors-label' : 'Coauthors',
+'cite-archiveurl-label' : 'Archive URL',
+'cite-archivedate-label' : 'Archive date',
+'cite-location-label' : 'Location',
+'cite-page-label' : 'Page',
+'cite-pages-label' : 'Pages',
+'cite-at-label' : 'At',
+'cite-chapter-label' : 'Chapter',
+'cite-volume-label' : 'Volume',
+'cite-series-label' : 'Series',
+'cite-issue-label' : 'Issue',
+'cite-language-label' : 'Language',
+'cite-format-label' : 'Format',
+'cite-date-label' : 'Date',
+'cite-month-label' : 'Month',
+'cite-year-label' : 'Year',
+'cite-quote-label' : 'Quote',
+'cite-author2-label' : '2nd author',
+'cite-author3-label' : '3rd author',
+'cite-author4-label' : '4th author',
+'cite-author5-label' : '5th author',
+'cite-agency-label' : 'Agency',
+'cite-editor-label' : 'Editor',
+'cite-editor1-first-label' : &quot;Editor's first&quot;,
+'cite-editor1-last-label' : &quot;Editor's last&quot;,
+'cite-editor1-link-label' : &quot;Editor's article&quot;,
+'cite-editor-first-label' : &quot;Editor's first&quot;,
+'cite-editor-last-label' : &quot;Editor's last&quot;,
+'cite-editor-link-label' : &quot;Editor's article&quot;,
+'cite-edition-label' : 'Edition',
+'cite-trans_title-label' : 'Translated title',
+'cite-ref-label' : 'Ref',
+'cite-postscript-label' : 'Postscript',
+'cite-url-label' : 'URL',
+'cite-doi-label' : 'DOI',
+'cite-isbn-label' : 'ISBN',
+'cite-pmid-label' : 'PMID',
+'cite-issn-label' : 'ISSN',
+'cite-pmc-label' : 'PMC',
+'cite-oclc-label' : 'OCLC',
+'cite-bibcode-label' : 'Bibcode',
+'cite-id-label' : 'ID',
+'cite-website-label' : 'Website name',
+'cite-increment-alt' : 'Add another', // Alt text for field increment button, not specific to a particular field
+});
+
+// Load configuration for site
+var RefToolbarLocal = importScript('MediaWiki:RefToolbarConfig.js');</text>
+      <sha1>08mnvh3v88szo5802f8o4rb442megax</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>MediaWiki:RefToolbarNoDialogs.js</title>
+    <ns>8</ns>
+    <id>30923550</id>
+    <revision>
+      <id>684765417</id>
+      <parentid>640347405</parentid>
+      <timestamp>2015-10-08T16:40:55Z</timestamp>
+      <contributor>
+        <username>Kaldari</username>
+        <id>59944</id>
+      </contributor>
+      <comment>fixing typo per talk page</comment>
+      <model>javascript</model>
+      <format>text/javascript</format>
+      <text xml:space="preserve" bytes="25143">var numforms = 0;
+var wikEdAutoUpdateUrl;
+function refbuttons() {
+  if (mwCustomEditButtons &amp;&amp; (document.getElementById('toolbar') || document.getElementById('wikiEditor-ui-toolbar'))/* &amp;&amp; wikEdAutoUpdateUrl == null*/) {
+    if (document.getElementById('toolbar')) {
+      button = document.createElement('a');
+      button.href = &quot;javascript:easyCiteMain()&quot;;
+      button.title = &quot;Insert citation&quot;;
+      buttonimage = document.createElement('img');
+      buttonimage.src = &quot;//upload.wikimedia.org/wikipedia/commons/0/00/Button_easy_cite_%281%29.png&quot;;
+      buttonimage.alt = &quot;Insert footnote&quot;;
+      button.appendChild(buttonimage);
+      document.getElementById('toolbar').appendChild(button);
+    } else {
+      button = document.createElement('a');
+      button.href = &quot;#&quot;;
+      button.title = &quot;Insert citation&quot;;
+      button.id = 'reftoolbar-button';
+      buttonimage = document.createElement('img');
+      buttonimage.src = &quot;//upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Curly_Brackets.svg/22px-Curly_Brackets.svg.png&quot;;
+      buttonimage.alt = &quot;Insert citation&quot;;
+      button.classname = &quot;tool tool-button&quot;;
+      buttonimage.style.width = &quot;22px&quot;;
+      buttonimage.style.height = &quot;17px&quot;;
+      buttonimage.style.paddingTop = &quot;5px&quot;;
+      buttonimage.style.paddingLeft = &quot;3px&quot;;
+      button.appendChild(buttonimage)
+      document.getElementById('wikiEditor-ui-toolbar').childNodes[0].childNodes[1].appendChild(button);
+      //document.getElementById('reftoolbar-button').onclick = easyCiteMain;
+      $(document).on('click', '#reftoolbar-button', function() { easyCiteMain(); });
+    }
+    if (navigator.userAgent.indexOf('MSIE') == -1) {
+      citemain = document.createElement('div');
+      citemain.style.display = 'none';
+      citemain.setAttribute('Id', 'citeselect');
+      citemain.appendChild( addOption(&quot;citeWeb()&quot;, &quot;Cite web&quot;) );
+      citemain.appendChild( addOption(&quot;citeBook()&quot;, &quot;Cite book&quot;) );
+      citemain.appendChild( addOption(&quot;citeJournal()&quot;, &quot;Cite journal&quot;) );
+      citemain.appendChild( addOption(&quot;citeNews()&quot;, &quot;Cite news&quot;) );
+      citemain.appendChild( addOption(&quot;citeNamedRef()&quot;, &quot;Named ref&quot;) );
+      citemain.appendChild( addOption(&quot;dispErrors()&quot;, &quot;Error check&quot;) );
+      citemain.appendChild( addOption(&quot;hideInitial()&quot;, &quot;Cancel&quot;) );
+      document.getElementById('wpTextbox1').parentNode.insertBefore(citemain, document.getElementById('wpTextbox1'));
+    }
+    else {
+    selection = '&lt;div id=&quot;citeselect&quot; style=&quot;display:none&quot;&gt;&lt;input type=&quot;button&quot; value=&quot;Cite web&quot; onclick=&quot;citeWeb()&quot; /&gt;'+
+      '&lt;input type=&quot;button&quot; value=&quot;Cite book&quot; onclick=&quot;citeBook()&quot; /&gt;'+
+      '&lt;input type=&quot;button&quot; value=&quot;Cite journal&quot; onclick=&quot;citeJournal()&quot; /&gt;'+
+      '&lt;input type=&quot;button&quot; value=&quot;Cite news&quot; onclick=&quot;citeNews()&quot; /&gt;'+
+      '&lt;input type=&quot;button&quot; value=&quot;Named ref&quot; onclick=&quot;citeNamedRef()&quot; /&gt;'+
+      '&lt;input type=&quot;button&quot; value=&quot;Error check&quot; onclick=&quot;dispErrors()&quot; /&gt;'+
+      '&lt;input type=&quot;button&quot; value=&quot;Cancel&quot; onclick=&quot;hideInitial()&quot; /&gt;&lt;/div&gt;';
+    document.getElementById('editform').innerHTML = selection + document.getElementById('editform').innerHTML;
+    }
+  }
+}
+ 
+function addOption(script, text) {
+  option = document.createElement('input');
+  option.setAttribute('type', 'button');
+  option.setAttribute('onclick', script);
+  option.setAttribute(&quot;value&quot;, text);
+  return option;
+}
+ 
+function hideInitial() {
+  document.getElementById('citeselect').style.display = 'none';
+  oldFormHide();
+}
+ 
+function oldFormHide() {
+  if (numforms != 0) {
+    document.getElementById('citediv'+numforms).style.display = 'none';
+  }
+  if (document.getElementById('errorform') != null) {
+    document.getElementById('citeselect').removeChild(document.getElementById('errorform'));
+  }
+} 
+ 
+function easyCiteMain() {
+  document.getElementById('citeselect').style.display = '';
+}
+ 
+var months = ['January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'];
+var citeGlobalDateFormat = &quot;&lt;date&gt; &lt;monthname&gt; &lt;year&gt;&quot;;
+function getTime() {
+  var datestr = '';
+  if (typeof citeUserDateFormat != 'undefined') {
+    datestr = citeUserDateFormat;
+  } else {
+    datestr = citeGlobalDateFormat;
+  }
+  var DT = new Date();
+  var zmonth = '';
+  var month = DT.getUTCMonth()+1;
+  if (month &lt; 10) {
+    zmonth = &quot;0&quot;+month.toString();
+  } else {
+    zmonth = month.toString();
+  }
+  month = month.toString();
+  var zdate = '';
+  var date = DT.getUTCDate()
+  if (date &lt; 10) {
+    zdate = &quot;0&quot;+date.toString();
+  } else {
+    zdate = date.toString();
+  }
+  date = date.toString()
+  datestr = datestr.replace('&lt;date&gt;', date);
+  datestr = datestr.replace('&lt;month&gt;', month);
+  datestr = datestr.replace('&lt;zdate&gt;', zdate);
+  datestr = datestr.replace('&lt;zmonth&gt;', zmonth);
+  datestr = datestr.replace('&lt;monthname&gt;', months[DT.getUTCMonth()]);
+  datestr = datestr.replace('&lt;year&gt;', DT.getUTCFullYear().toString());
+  return (datestr);
+}
+ 
+function citeWeb() {
+  citeNewsWeb(&quot;cite web&quot;);
+}
+function citeNews() {
+  citeNewsWeb(&quot;cite news&quot;);
+}
+ 
+function citeNewsWeb(templatename) {
+  oldFormHide();
+  template = templatename;
+  var legend;
+  if (template == &quot;cite web&quot;) {
+    legend = &quot;Cite web source&quot;;
+  } else {
+    legend = &quot;Cite news source&quot;;
+  }
+  newtime = getTime();
+  numforms++;
+  form = '&lt;div id=&quot;citediv'+numforms+'&quot;&gt;'+
+    '&lt;fieldset&gt;&lt;legend&gt;'+legend+'&lt;/legend&gt;'+
+    '&lt;table cellspacing=&quot;5&quot;&gt;'+
+    '&lt;input type=&quot;hidden&quot; value=&quot;'+template+'&quot; id=&quot;template&quot;&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;url&quot;&gt;&amp;nbsp;URL: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;url&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;title&quot;&gt;&amp;nbsp;Title: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;title&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;last&quot;&gt;&amp;nbsp;Last name: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;last&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;first&quot;&gt;&amp;nbsp;First name: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;first&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;coauthors&quot;&gt;&amp;nbsp;Coauthors: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;coauthors&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;date&quot;&gt;&amp;nbsp;Publication date: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;date&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;work&quot;&gt;&amp;nbsp;Work: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;work&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;publisher&quot;&gt;&amp;nbsp;Publisher: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;publisher&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;pages&quot;&gt;&amp;nbsp;Pages: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;pages&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;language&quot;&gt;&amp;nbsp;Language: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;language&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;accessdate&quot;&gt;&amp;nbsp;Access date: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;accessdate&quot; value=&quot;'+ newtime +'&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;location&quot;&gt;&amp;nbsp;Location: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;location&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;refname&quot;&gt;&amp;nbsp;Reference name: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;refname&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;/table&gt;'+
+    '&lt;input type=&quot;button&quot; value=&quot;Add citation&quot; onClick=&quot;addcites()&quot;&gt;'+
+ '&lt;/fieldset&gt;&lt;/div&gt;';
+   document.getElementById('citeselect').innerHTML += form;
+}
+ 
+function citeBook() {
+  oldFormHide();
+  template = &quot;cite book&quot;;
+  numforms++;
+  form = '&lt;div id=&quot;citediv'+numforms+'&quot;&gt;'+
+    '&lt;fieldset&gt;&lt;legend&gt;Cite book source&lt;/legend&gt;'+
+    '&lt;table cellspacing=&quot;5&quot;&gt;'+
+    '&lt;input type=&quot;hidden&quot; value=&quot;'+template+'&quot; id=&quot;template&quot;&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;last&quot;&gt;&amp;nbsp;Last name: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;last&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;first&quot;&gt;&amp;nbsp;First name: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;first&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;coauthors&quot;&gt;&amp;nbsp;Coauthors: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;coauthors&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;others&quot;&gt;&amp;nbsp;Others: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;others&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;title&quot;&gt;&amp;nbsp;Title: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;title&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;editor&quot;&gt;&amp;nbsp;Editor: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;editor&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;publisher&quot;&gt;&amp;nbsp;Publisher: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;publisher&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;location&quot;&gt;&amp;nbsp;Location: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;location&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;date&quot;&gt;&amp;nbsp;Publication date: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;date&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;edition&quot;&gt;&amp;nbsp;Edition: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;edition&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;series&quot;&gt;&amp;nbsp;Series: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;series&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;volume&quot;&gt;&amp;nbsp;Volume: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;volume&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;pages&quot;&gt;&amp;nbsp;Pages: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;pages&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;chapter&quot;&gt;&amp;nbsp;Chapter: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;chapter&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;isbn&quot;&gt;&amp;nbsp;ISBN: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;isbn&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;oclc&quot;&gt;&amp;nbsp;OCLC: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;oclc&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;url&quot;&gt;&amp;nbsp;URL: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;url&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;accessdate&quot;&gt;&amp;nbsp;Access date: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;accessdate&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;language&quot;&gt;&amp;nbsp;Language: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;language&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;refname&quot;&gt;&amp;nbsp;Reference name: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;refname&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;/table&gt;'+
+    '&lt;input type=&quot;button&quot; value=&quot;Add citation&quot; onClick=&quot;addcites()&quot;&gt;'+
+ '&lt;/fieldset&gt;&lt;/div&gt;';
+   document.getElementById('citeselect').innerHTML += form;
+}
+ 
+function citeJournal() {
+  oldFormHide();
+  template = &quot;cite journal&quot;;
+  numforms++;
+  form = '&lt;div id=&quot;citediv'+numforms+'&quot;&gt;'+
+    '&lt;fieldset&gt;&lt;legend&gt;Cite journal source&lt;/legend&gt;'+
+    '&lt;table cellspacing=&quot;5&quot;&gt;'+
+    '&lt;input type=&quot;hidden&quot; value=&quot;'+template+'&quot; id=&quot;template&quot;&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;last&quot;&gt;&amp;nbsp;Last name: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;last&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;first&quot;&gt;&amp;nbsp;First name: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;first&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;coauthors&quot;&gt;&amp;nbsp;Coauthors: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;coauthors&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;date&quot;&gt;&amp;nbsp;Publication date: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;date&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;title&quot;&gt;&amp;nbsp;Title: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;title&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;journal&quot;&gt;&amp;nbsp;Journal: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;journal&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;publisher&quot;&gt;&amp;nbsp;Publisher: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;publisher&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;location&quot;&gt;&amp;nbsp;Location: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;location&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;volume&quot;&gt;&amp;nbsp;Volume: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;volume&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;issue&quot;&gt;&amp;nbsp;Issue: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;issue&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;pages&quot;&gt;&amp;nbsp;Pages: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;pages&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;issn&quot;&gt;&amp;nbsp;ISSN: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;issn&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;oclc&quot;&gt;&amp;nbsp;OCLC: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;oclc&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;language&quot;&gt;&amp;nbsp;Language: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;language&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;url&quot;&gt;&amp;nbsp;URL: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;url&quot;&gt;&lt;/td&gt;'+
+    '&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;accessdate&quot;&gt;&amp;nbsp;Access date: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;accessdate&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;tr&gt;&lt;td width=&quot;120&quot;&gt;&lt;label for=&quot;refname&quot;&gt;&amp;nbsp;Reference name: &lt;/label&gt;&lt;/td&gt;'+
+      '&lt;td width=&quot;400&quot;&gt;&lt;input type=&quot;text&quot; tabindex=1 style=&quot;width:100%&quot; id=&quot;refname&quot;&gt;&lt;/td&gt;&lt;/tr&gt;'+
+    '&lt;/table&gt;'+
+    '&lt;input type=&quot;button&quot; value=&quot;Add citation&quot; onClick=&quot;addcites()&quot;&gt;'+
+ '&lt;/fieldset&gt;&lt;/div&gt;';
+   document.getElementById('citeselect').innerHTML += form;
+}
+ 
+function addcites(template) {
+  cites = document.getElementById('citediv'+numforms).getElementsByTagName('input');
+  var citebegin = '&lt;ref';
+  var citename = '';
+  var citeinner = '';
+  for (var i=0; i&lt;cites.length-1; i++) {
+    if (cites[i].value != '' &amp;&amp; cites[i].id != &quot;refname&quot; &amp;&amp; cites[i].id != &quot;template&quot;) {
+      citeinner += &quot;|&quot; + cites[i].id + &quot;=&quot; + cites[i].value;
+    }
+    else if (cites[i].value != '' &amp;&amp; cites[i].id == &quot;refname&quot; &amp;&amp; cites[i].id != &quot;template&quot;) {
+      citebegin += ' name=&quot;' + cites[i].value + '&quot;';
+    }
+    else if (cites[i].value != '' &amp;&amp; cites[i].id != &quot;refname&quot; &amp;&amp; cites[i].id == &quot;template&quot;) {
+      citename = '&gt;{{' + cites[i].value;
+    }
+  }
+  cite = citebegin + citename + citeinner + &quot;}}&lt;/ref&gt;&quot;;
+  $(&quot;#wpTextbox1&quot;).focus();
+  insertTags(cite, '', '');
+  document.getElementById('citediv'+numforms).style.display = 'none';
+}
+ 
+function getNamedRefs(calls) {
+  if (typeof(wikEdUseWikEd) != 'undefined') {
+    if (wikEdUseWikEd == true) {
+      WikEdUpdateTextarea();
+    }
+  }
+  text = document.getElementById('wpTextbox1').value;
+  var regex;
+  if (calls) {
+    regex = /&lt; *?ref +?name *?= *?(('([^']*?)')|(&quot;([^&quot;]*?)&quot;)|([^'&quot;\s]*?[^\/]\b)) *?\/ *?&gt;/gi //'
+  } else {
+    regex = /&lt; *?ref +?name *?= *?(('([^']*?)')|(&quot;([^&quot;]*?)&quot;)|([^'&quot;\s]*?[^\/]\b)) *?&gt;/gi //'
+  }
+  var namedrefs = [];
+  var i=0;
+  var nr=true;
+  do {
+    ref = regex.exec(text);
+    if(ref != null){
+      if (ref[5]) {
+        namedrefs[i] = ref[5];
+      } else if (ref[3]) {
+        namedrefs[i] = ref[3];
+      } else {
+        namedrefs[i] = ref[6];
+      }
+      i++;
+    } else {
+      nr=false;
+    }
+  } while (nr==true);
+  return namedrefs;
+}
+ 
+function citeNamedRef() {
+  namedrefs = getNamedRefs(false);
+  if (namedrefs == '') {
+    oldFormHide();
+    numforms++;
+    out = '&lt;div id=&quot;citediv'+numforms+'&quot;&gt;&lt;fieldset&gt;'+
+      '&lt;legend&gt;References in text&lt;/legend&gt;There are no named refs (&lt;tt&gt;&amp;lt;ref name=&quot;Name&quot;&amp;gt;&lt;/tt&gt;) in the text&lt;/fieldset&gt;&lt;/div&gt;';
+    document.getElementById('citeselect').innerHTML += out;
+  }
+  else {
+    oldFormHide();
+    numforms++;
+    form = '&lt;div id=&quot;citediv'+numforms+'&quot;&gt;'+
+      '&lt;fieldset&gt;&lt;legend&gt;References in article&lt;/legend&gt;'+
+      '&lt;table cellspacing=&quot;5&quot;&gt;'+
+      '&lt;tr&gt;&lt;td&gt;&lt;label for=&quot;namedrefs&quot;&gt;&amp;nbsp;Named references in text&lt;/label&gt;&lt;/td&gt;'+
+            '&lt;td&gt;&lt;select name=&quot;namedrefs&quot; id=&quot;namedrefs&quot;&gt;';
+    for (var i=0;i&lt;namedrefs.length;i++) {
+      form+= '&lt;option value=&quot;'+namedrefs[i]+'&quot;&gt;'+namedrefs[i]+'&lt;/option&gt;';
+    }
+    form+= '&lt;/select&gt;'+
+      '&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;'+
+      '&lt;input type=&quot;button&quot; value=&quot;Add citation&quot; onClick=&quot;addnamedcite()&quot;&gt;'+
+      '&lt;/fieldset&gt;&lt;/div&gt;';
+     document.getElementById('citeselect').innerHTML += form;
+  }
+}
+ 
+function addnamedcite() {
+  name = document.getElementById('citediv'+numforms).getElementsByTagName('select')[0].value;
+  ref = '&lt;ref name=&quot;'+name+'&quot; /&gt;';
+  $(&quot;#wpTextbox1&quot;).focus();
+  insertTags(ref, '', '');
+  document.getElementById('citediv'+numforms).style.display = 'none';
+}
+ 
+function getAllRefs() {
+  if (typeof(wikEdUseWikEd) != 'undefined') {
+    if (wikEdUseWikEd == true) {
+      WikEdUpdateTextarea();
+    }
+  }
+  text = document.getElementById('wpTextbox1').value;
+  regex = /&lt; *?ref( +?name *?= *?(('([^']*?)')|(&quot;([^&quot;]*?)&quot;)|([^'&quot;\s]*?[^\/]\b)))? *?&gt;((.|\n)*?)&lt; *?\/? *?ref *?&gt;/gim //&quot;
+  var allrefs = [];
+  var i=0;
+  var nr=true;
+  do {
+    ref = regex.exec(text);
+    if(ref != null){
+      if (ref[0].search(/[^\s]{150}/) != -1) {
+        ref[0] = ref[0].replace(/\|([^\s])/g, &quot;| $1&quot;);
+      }
+      ref[0] = ref[0].replace(/&lt;/g, &quot;&amp;lt;&quot;);
+      ref[0] = ref[0].replace(/&gt;/g, &quot;&amp;gt;&quot;);
+      allrefs[i] = ref[0];
+      i++;
+    } else {
+      nr=false;
+    }
+  } while (nr==true);
+  return allrefs;
+}
+ 
+function NRcallError(namedrefs, refname) {
+  for (var i=0; i&lt;namedrefs.length; i++) {
+    if (namedrefs[i] == refname) {
+      return true;
+    }
+  }
+  return false;
+}
+ 
+function errorCheck() {
+  var allrefs = getAllRefs();
+  var allrefscontent = [];
+  var samecontentexclude = [];
+  var sx=0;
+  var templateexclude = [];
+  var tx=0;
+  var skipcheck = false;
+  var namedrefcalls = getNamedRefs(true);
+  for (var i=0; i&lt;allrefs.length; i++) {
+    allrefscontent[i] = allrefs[i].replace(/&amp;lt; *?ref( +?name *?= *?(('([^']*?)')|(&quot;([^&quot;]*?)&quot;)|([^'&quot;\s]*?[^\/]\b)))? *?&amp;gt;((.|\n)*?)&amp;lt; *?\/? *?ref *?&amp;gt;/gim, &quot;$8&quot;);  //&quot;
+  }
+  var namedrefs = getNamedRefs(false);
+  var errorlist = [];
+  var q=0;
+  unclosed = document.getElementById('unclosed').checked;
+  samecontent = document.getElementById('samecontent').checked;
+  templates = document.getElementById('templates').checked;
+  repeated = document.getElementById('repeated').checked;
+  undef = document.getElementById('undef').checked;
+  for (var i=0; i&lt;allrefs.length; i++) {
+    if (allrefs[i].search(/&amp;lt; *?\/ *?ref *?&amp;gt;/) == -1 &amp;&amp; unclosed) {
+      errorlist[q] = '&lt;tr&gt;&lt;td width=&quot;75%&quot;&gt;&lt;tt&gt;'+allrefs[i]+'&lt;/tt&gt;&lt;/td&gt;';
+      errorlist[q] += '&lt;td width=&quot;25%&quot;&gt;Unclosed &lt;tt&gt;&amp;lt;ref&amp;gt;&lt;/tt&gt; tag&lt;/td&gt;&lt;/tr&gt;';
+      q++;
+    }
+    if (samecontent) {
+      for (var d=0; d&lt;samecontentexclude.length; d++) {
+        if (allrefscontent[i] == samecontentexclude[d]) {
+          skipcheck = true;
+        }
+      }
+      var p=0;
+      while (p&lt;allrefs.length &amp;&amp; !skipcheck) {
+        if (allrefscontent[i] == allrefscontent[p] &amp;&amp; i != p) {
+          errorlist[q] = '&lt;tr&gt;&lt;td width=&quot;75%&quot;&gt;&lt;tt&gt;'+allrefscontent[i]+'&lt;/tt&gt;&lt;/td&gt;';
+          errorlist[q] += '&lt;td width=&quot;25%&quot;&gt;Multiple refs contain this content, a &lt;a href=&quot;//en.wikipedia.org/wiki/Wikipedia:Footnotes#Naming_a_ref_tag_so_it_can_be_used_more_than_once&quot;&gt;named reference&lt;/a&gt; should be used instead&lt;/td&gt;&lt;/tr&gt;';
+          q++;
+          samecontentexclude[sx] = allrefscontent[i]
+          sx++;
+          break;
+        }
+        p++;
+      }
+     skipcheck=false;
+    }
+    if (templates) {
+      if (allrefscontent[i].search(/\{\{cite/i) == -1 &amp;&amp; allrefscontent[i].search(/\{\{citation/i) == -1 &amp;&amp; allrefscontent[i].search(/\{\{Comic (book|strip) reference/i) == -1 &amp;&amp; allrefscontent[i].search(/\{\{Editorial cartoon reference/i) == -1 &amp;&amp; allrefscontent[i].search(/\{\{harv/i) == -1) {
+        for (var x=0; x&lt;templateexclude.length; x++) {
+          if (allrefscontent[i] == templateexclude[x]) {
+            skipcheck = true;
+          }
+        }
+        if (!skipcheck) {
+          errorlist[q] = '&lt;tr&gt;&lt;td width=&quot;75%&quot;&gt;&lt;tt&gt;'+allrefs[i]+'&lt;/tt&gt;&lt;/td&gt;';
+          errorlist[q] += '&lt;td width=&quot;25%&quot;&gt;Does not use a &lt;a href=&quot;//en.wikipedia.org/wiki/Wikipedia:Citation_templates&quot;&gt;citation template&lt;/a&gt;&lt;/td&gt;&lt;/tr&gt;';
+          q++;
+          templateexclude[tx] = allrefscontent[i];
+          tx++;
+        }
+        skipcheck = false;
+      }
+    }
+  }
+  if (repeated) {
+    var repeatnameexclude = [];
+    var rx=0;
+    for (var k=0; k&lt;namedrefs.length; k++) {
+      for (var d=0; d&lt;repeatnameexclude.length; d++) {
+        if (namedrefs[k] == repeatnameexclude[d]) {
+          skipcheck = true;
+        }
+      }
+      var z=0;
+      while (z&lt;namedrefs.length &amp;&amp; !skipcheck) {
+        if (namedrefs[k] == namedrefs[z] &amp;&amp; k != z) {
+          errorlist[q] = '&lt;tr&gt;&lt;td width=&quot;75%&quot;&gt;&lt;tt&gt;'+namedrefs[k]+'&lt;/tt&gt;&lt;/td&gt;';
+          errorlist[q] += '&lt;td width=&quot;25%&quot;&gt;Multiple references are given the same &lt;a href=&quot;//en.wikipedia.org/wiki/Wikipedia:Footnotes#Naming_a_ref_tag_so_it_can_be_used_more_than_once&quot;&gt;name&lt;/a&gt;&lt;/td&gt;&lt;/tr&gt;';
+          q++;
+          repeatnameexclude[rx] = namedrefs[z];
+          rx++;
+          break;
+        }
+        z++;
+      }
+     skipcheck = false;
+    }
+  }
+  if (undef) {
+    var undefexclude = [];
+    var ux=0;
+    for (var p=0; p&lt;namedrefcalls.length; p++) {
+      for (var d=0; d&lt;undefexclude.length; d++) {
+        if (allrefscontent[i] == undefexclude[d]) {
+          skipcheck = true;
+        }
+      }
+      if (!skipcheck) {
+        if (!NRcallError(namedrefs, namedrefcalls[p])) {
+          errorlist[q] = '&lt;tr&gt;&lt;td width=&quot;75%&quot;&gt;&lt;tt&gt;'+namedrefcalls[p]+'&lt;/tt&gt;&lt;/td&gt;';
+          errorlist[q] += '&lt;td width=&quot;25%&quot;&gt;A &lt;a href=&quot;//en.wikipedia.org/wiki/Wikipedia:Footnotes#Naming_a_ref_tag_so_it_can_be_used_more_than_once&quot;&gt;named reference&lt;/a&gt; is used but not defined&lt;/td&gt;&lt;/tr&gt;';
+          q++;
+          undefexclude[ux] = namedrefs[p];
+          ux++;
+        }
+      }
+      skipcheck = false;
+    }
+ }
+  if (q &gt; 0) {
+    return errorlist;
+  } else {
+    return 0;
+  }
+}
+ 
+function dispErrors() {
+  oldFormHide();
+  form = '&lt;div id=&quot;errorform&quot;&gt;&lt;fieldset&gt;'+
+    '&lt;legend&gt;Error checking&lt;/legend&gt;'+
+    '&lt;b&gt;Check for:&lt;/b&gt;&lt;br/&gt;'+
+    '&lt;input type=&quot;checkbox&quot; id=&quot;unclosed&quot; /&gt; Unclosed &lt;tt&gt;&amp;lt;ref&amp;gt;&lt;/tt&gt; tags&lt;br/&gt;'+
+    '&lt;input type=&quot;checkbox&quot; id=&quot;samecontent&quot; /&gt; References with the same content&lt;br/&gt;'+
+    '&lt;input type=&quot;checkbox&quot; id=&quot;templates&quot; /&gt; References not using a &lt;a href=&quot;//en.wikipedia.org/wiki/Wikipedia:Citation_templates&quot;&gt;citation template&lt;/a&gt;&lt;br/&gt;'+
+    '&lt;input type=&quot;checkbox&quot; id=&quot;repeated&quot; /&gt; Multiple references with the same name&lt;br/&gt;'+
+    '&lt;input type=&quot;checkbox&quot; id=&quot;undef&quot; /&gt; Usage of undefined named references&lt;br/&gt;'+
+    '&lt;input type=&quot;button&quot; id=&quot;errorchecksubmit&quot; value=&quot;Check for selected errors&quot; onclick=&quot;doErrorCheck()&quot;/&gt;'+
+    '&lt;/fieldset&gt;&lt;/div&gt;';
+  document.getElementById('citeselect').innerHTML += form;
+}
+ 
+function doErrorCheck() {
+  var errors = errorCheck();
+  document.getElementById('citeselect').removeChild(document.getElementById('errorform'));
+  if (errors == 0) {
+    if (numforms != 0) {
+      document.getElementById('citediv'+numforms).style.display = 'none';
+    }
+    numforms++;
+    out = '&lt;div id=&quot;citediv'+numforms+'&quot;&gt;&lt;fieldset&gt;'+
+      '&lt;legend&gt;Error checking&lt;/legend&gt;No errors found.&lt;/fieldset&gt;&lt;/div&gt;';
+    document.getElementById('citeselect').innerHTML += out;
+  }
+  else {
+    if (numforms != 0) {
+      document.getElementById('citediv'+numforms).style.display = 'none';
+    }
+    numforms++;
+    form = '&lt;div id=&quot;citediv'+numforms+'&quot;&gt;'+
+      '&lt;fieldset&gt;&lt;legend&gt;Error checking&lt;/legend&gt;'+
+      '&lt;table border=&quot;1px&quot;&gt;';
+    for (var i=0; i&lt;errors.length; i++) {
+      form+=errors[i];
+    }
+    form+= '&lt;/table&gt;'+
+      '&lt;/fieldset&gt;&lt;/div&gt;';
+     document.getElementById('citeselect').innerHTML += form;
+  }
+}
+ 
+$( refbuttons );</text>
+      <sha1>k4y6zq3r93x8uzfzolx71081eq8xbag</sha1>
+    </revision>
+  </page>
+</mediawiki>

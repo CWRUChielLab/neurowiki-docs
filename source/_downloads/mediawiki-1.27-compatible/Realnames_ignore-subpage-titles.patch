@@ -1,0 +1,20 @@
+--- a/Realnames.body.php
++++ b/Realnames.body.php
+@@ -265,7 +265,7 @@
+       if (in_array($title->getNamespace(), array(NS_USER, NS_USER_TALK))) { // User:
+         // swap out the specific username from title
+         // this overcomes the problem lookForBare has with spaces and underscores in names
+-        $out->setPagetitle(static::lookForBare($out->getPageTitle(),'/'.static::getNamespacePrefixes().'\s*('.$title->getText().')(?:\/.+)?/'));
++        $out->setPagetitle(static::lookForBare($out->getPageTitle(),'~'.static::getNamespacePrefixes().'\s*('.$title->getText().')(?:/.+)?~'));
+       }
+
+       // this should also affect the html head title
+@@ -331,7 +331,7 @@
+     if (empty($pattern)) {
+       // considered doing [^<]+ here to catch names with spaces or underscores,
+       // which works for most titles but is not universal
+-      $pattern = '/'.static::getNamespacePrefixes().'([^ \t]+)(:\/.+)?/';
++      $pattern = '~'.static::getNamespacePrefixes().'([^ \t]+)(:/.+)?~';
+     }
+     wfDebugLog('realnames', __METHOD__.": pattern: ".$pattern);
+     return preg_replace_callback(

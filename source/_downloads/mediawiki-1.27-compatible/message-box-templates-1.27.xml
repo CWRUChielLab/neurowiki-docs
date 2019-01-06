@@ -1,0 +1,2268 @@
+﻿<mediawiki xmlns="http://www.mediawiki.org/xml/export-0.10/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mediawiki.org/xml/export-0.10/ http://www.mediawiki.org/xml/export-0.10.xsd" version="0.10" xml:lang="en">
+  <siteinfo>
+    <sitename>Wikipedia</sitename>
+    <dbname>enwiki</dbname>
+    <base>https://en.wikipedia.org/wiki/Main_Page</base>
+    <generator>MediaWiki 1.28.0-wmf.15</generator>
+    <case>first-letter</case>
+    <namespaces>
+      <namespace key="-2" case="first-letter">Media</namespace>
+      <namespace key="-1" case="first-letter">Special</namespace>
+      <namespace key="0" case="first-letter" />
+      <namespace key="1" case="first-letter">Talk</namespace>
+      <namespace key="2" case="first-letter">User</namespace>
+      <namespace key="3" case="first-letter">User talk</namespace>
+      <namespace key="4" case="first-letter">Wikipedia</namespace>
+      <namespace key="5" case="first-letter">Wikipedia talk</namespace>
+      <namespace key="6" case="first-letter">File</namespace>
+      <namespace key="7" case="first-letter">File talk</namespace>
+      <namespace key="8" case="first-letter">MediaWiki</namespace>
+      <namespace key="9" case="first-letter">MediaWiki talk</namespace>
+      <namespace key="10" case="first-letter">Template</namespace>
+      <namespace key="11" case="first-letter">Template talk</namespace>
+      <namespace key="12" case="first-letter">Help</namespace>
+      <namespace key="13" case="first-letter">Help talk</namespace>
+      <namespace key="14" case="first-letter">Category</namespace>
+      <namespace key="15" case="first-letter">Category talk</namespace>
+      <namespace key="100" case="first-letter">Portal</namespace>
+      <namespace key="101" case="first-letter">Portal talk</namespace>
+      <namespace key="108" case="first-letter">Book</namespace>
+      <namespace key="109" case="first-letter">Book talk</namespace>
+      <namespace key="118" case="first-letter">Draft</namespace>
+      <namespace key="119" case="first-letter">Draft talk</namespace>
+      <namespace key="446" case="first-letter">Education Program</namespace>
+      <namespace key="447" case="first-letter">Education Program talk</namespace>
+      <namespace key="710" case="first-letter">TimedText</namespace>
+      <namespace key="711" case="first-letter">TimedText talk</namespace>
+      <namespace key="828" case="first-letter">Module</namespace>
+      <namespace key="829" case="first-letter">Module talk</namespace>
+      <namespace key="2300" case="first-letter">Gadget</namespace>
+      <namespace key="2301" case="first-letter">Gadget talk</namespace>
+      <namespace key="2302" case="case-sensitive">Gadget definition</namespace>
+      <namespace key="2303" case="case-sensitive">Gadget definition talk</namespace>
+      <namespace key="2600" case="first-letter">Topic</namespace>
+    </namespaces>
+  </siteinfo>
+  <page>
+    <title>Module:Arguments</title>
+    <ns>828</ns>
+    <id>41298065</id>
+    <revision>
+      <id>696500078</id>
+      <parentid>668829606</parentid>
+      <timestamp>2015-12-23T16:07:27Z</timestamp>
+      <contributor>
+        <username>Xaosflux</username>
+        <id>502540</id>
+      </contributor>
+      <minor/>
+      <comment>Changed protection level of Module:Arguments: used in the mediawiki interface ex: [[MediaWiki:Watchlist-details]] ([Edit=Allow only administrators] (indefinite) [Move=Allow only administrators] (indefinite))</comment>
+      <model>Scribunto</model>
+      <format>text/plain</format>
+      <text xml:space="preserve" bytes="10054">-- This module provides easy processing of arguments passed to Scribunto from
+-- #invoke. It is intended for use by other Lua modules, and should not be
+-- called from #invoke directly.
+
+local libraryUtil = require('libraryUtil')
+local checkType = libraryUtil.checkType
+
+local arguments = {}
+
+-- Generate four different tidyVal functions, so that we don't have to check the
+-- options every time we call it.
+
+local function tidyValDefault(key, val)
+	if type(val) == 'string' then
+		val = val:match('^%s*(.-)%s*$')
+		if val == '' then
+			return nil
+		else
+			return val
+		end
+	else
+		return val
+	end
+end
+
+local function tidyValTrimOnly(key, val)
+	if type(val) == 'string' then
+		return val:match('^%s*(.-)%s*$')
+	else
+		return val
+	end
+end
+
+local function tidyValRemoveBlanksOnly(key, val)
+	if type(val) == 'string' then
+		if val:find('%S') then
+			return val
+		else
+			return nil
+		end
+	else
+		return val
+	end
+end
+
+local function tidyValNoChange(key, val)
+	return val
+end
+
+local function matchesTitle(given, title)
+	local tp = type( given )
+	return (tp == 'string' or tp == 'number') and mw.title.new( given ).prefixedText == title
+end
+
+local translate_mt = { __index = function(t, k) return k end }
+
+function arguments.getArgs(frame, options)
+	checkType('getArgs', 1, frame, 'table', true)
+	checkType('getArgs', 2, options, 'table', true)
+	frame = frame or {}
+	options = options or {}
+
+	--[[
+	-- Set up argument translation.
+	--]]
+	options.translate = options.translate or {}
+	if getmetatable(options.translate) == nil then
+		setmetatable(options.translate, translate_mt)
+	end
+	if options.backtranslate == nil then
+		options.backtranslate = {}
+		for k,v in pairs(options.translate) do
+			options.backtranslate[v] = k
+		end
+	end
+	if options.backtranslate and getmetatable(options.backtranslate) == nil then
+		setmetatable(options.backtranslate, {
+			__index = function(t, k)
+				if options.translate[k] ~= k then
+					return nil
+				else
+					return k
+				end
+			end
+		})
+	end
+
+	--[[
+	-- Get the argument tables. If we were passed a valid frame object, get the
+	-- frame arguments (fargs) and the parent frame arguments (pargs), depending
+	-- on the options set and on the parent frame's availability. If we weren't
+	-- passed a valid frame object, we are being called from another Lua module
+	-- or from the debug console, so assume that we were passed a table of args
+	-- directly, and assign it to a new variable (luaArgs).
+	--]]
+	local fargs, pargs, luaArgs
+	if type(frame.args) == 'table' and type(frame.getParent) == 'function' then
+		if options.wrappers then
+			--[[
+			-- The wrappers option makes Module:Arguments look up arguments in
+			-- either the frame argument table or the parent argument table, but
+			-- not both. This means that users can use either the #invoke syntax
+			-- or a wrapper template without the loss of performance associated
+			-- with looking arguments up in both the frame and the parent frame.
+			-- Module:Arguments will look up arguments in the parent frame
+			-- if it finds the parent frame's title in options.wrapper;
+			-- otherwise it will look up arguments in the frame object passed
+			-- to getArgs.
+			--]]
+			local parent = frame:getParent()
+			if not parent then
+				fargs = frame.args
+			else
+				local title = parent:getTitle():gsub('/sandbox$', '')
+				local found = false
+				if matchesTitle(options.wrappers, title) then
+					found = true
+				elseif type(options.wrappers) == 'table' then
+					for _,v in pairs(options.wrappers) do
+						if matchesTitle(v, title) then
+							found = true
+							break
+						end
+					end
+				end
+
+				-- We test for false specifically here so that nil (the default) acts like true.
+				if found or options.frameOnly == false then
+					pargs = parent.args
+				end
+				if not found or options.parentOnly == false then
+					fargs = frame.args
+				end
+			end
+		else
+			-- options.wrapper isn't set, so check the other options.
+			if not options.parentOnly then
+				fargs = frame.args
+			end
+			if not options.frameOnly then
+				local parent = frame:getParent()
+				pargs = parent and parent.args or nil
+			end
+		end
+		if options.parentFirst then
+			fargs, pargs = pargs, fargs
+		end
+	else
+		luaArgs = frame
+	end
+
+	-- Set the order of precedence of the argument tables. If the variables are
+	-- nil, nothing will be added to the table, which is how we avoid clashes
+	-- between the frame/parent args and the Lua args.
+	local argTables = {fargs}
+	argTables[#argTables + 1] = pargs
+	argTables[#argTables + 1] = luaArgs
+
+	--[[
+	-- Generate the tidyVal function. If it has been specified by the user, we
+	-- use that; if not, we choose one of four functions depending on the
+	-- options chosen. This is so that we don't have to call the options table
+	-- every time the function is called.
+	--]]
+	local tidyVal = options.valueFunc
+	if tidyVal then
+		if type(tidyVal) ~= 'function' then
+			error(
+				&quot;bad value assigned to option 'valueFunc'&quot;
+					.. '(function expected, got '
+					.. type(tidyVal)
+					.. ')',
+				2
+			)
+		end
+	elseif options.trim ~= false then
+		if options.removeBlanks ~= false then
+			tidyVal = tidyValDefault
+		else
+			tidyVal = tidyValTrimOnly
+		end
+	else
+		if options.removeBlanks ~= false then
+			tidyVal = tidyValRemoveBlanksOnly
+		else
+			tidyVal = tidyValNoChange
+		end
+	end
+
+	--[[
+	-- Set up the args, metaArgs and nilArgs tables. args will be the one
+	-- accessed from functions, and metaArgs will hold the actual arguments. Nil
+	-- arguments are memoized in nilArgs, and the metatable connects all of them
+	-- together.
+	--]]
+	local args, metaArgs, nilArgs, metatable = {}, {}, {}, {}
+	setmetatable(args, metatable)
+
+	local function mergeArgs(tables)
+		--[[
+		-- Accepts multiple tables as input and merges their keys and values
+		-- into one table. If a value is already present it is not overwritten;
+		-- tables listed earlier have precedence. We are also memoizing nil
+		-- values, which can be overwritten if they are 's' (soft).
+		--]]
+		for _, t in ipairs(tables) do
+			for key, val in pairs(t) do
+				if metaArgs[key] == nil and nilArgs[key] ~= 'h' then
+					local tidiedVal = tidyVal(key, val)
+					if tidiedVal == nil then
+						nilArgs[key] = 's'
+					else
+						metaArgs[key] = tidiedVal
+					end
+				end
+			end
+		end
+	end
+
+	--[[
+	-- Define metatable behaviour. Arguments are memoized in the metaArgs table,
+	-- and are only fetched from the argument tables once. Fetching arguments
+	-- from the argument tables is the most resource-intensive step in this
+	-- module, so we try and avoid it where possible. For this reason, nil
+	-- arguments are also memoized, in the nilArgs table. Also, we keep a record
+	-- in the metatable of when pairs and ipairs have been called, so we do not
+	-- run pairs and ipairs on the argument tables more than once. We also do
+	-- not run ipairs on fargs and pargs if pairs has already been run, as all
+	-- the arguments will already have been copied over.
+	--]]
+
+	metatable.__index = function (t, key)
+		--[[
+		-- Fetches an argument when the args table is indexed. First we check
+		-- to see if the value is memoized, and if not we try and fetch it from
+		-- the argument tables. When we check memoization, we need to check
+		-- metaArgs before nilArgs, as both can be non-nil at the same time.
+		-- If the argument is not present in metaArgs, we also check whether
+		-- pairs has been run yet. If pairs has already been run, we return nil.
+		-- This is because all the arguments will have already been copied into
+		-- metaArgs by the mergeArgs function, meaning that any other arguments
+		-- must be nil.
+		--]]
+		if type(key) == 'string' then
+			key = options.translate[key]
+		end
+		local val = metaArgs[key]
+		if val ~= nil then
+			return val
+		elseif metatable.donePairs or nilArgs[key] then
+			return nil
+		end
+		for _, argTable in ipairs(argTables) do
+			local argTableVal = tidyVal(key, argTable[key])
+			if argTableVal ~= nil then
+				metaArgs[key] = argTableVal
+				return argTableVal
+			end
+		end
+		nilArgs[key] = 'h'
+		return nil
+	end
+
+	metatable.__newindex = function (t, key, val)
+		-- This function is called when a module tries to add a new value to the
+		-- args table, or tries to change an existing value.
+		if type(key) == 'string' then
+			key = options.translate[key]
+		end
+		if options.readOnly then
+			error(
+				'could not write to argument table key &quot;'
+					.. tostring(key)
+					.. '&quot;; the table is read-only',
+				2
+			)
+		elseif options.noOverwrite and args[key] ~= nil then
+			error(
+				'could not write to argument table key &quot;'
+					.. tostring(key)
+					.. '&quot;; overwriting existing arguments is not permitted',
+				2
+			)
+		elseif val == nil then
+			--[[
+			-- If the argument is to be overwritten with nil, we need to erase
+			-- the value in metaArgs, so that __index, __pairs and __ipairs do
+			-- not use a previous existing value, if present; and we also need
+			-- to memoize the nil in nilArgs, so that the value isn't looked
+			-- up in the argument tables if it is accessed again.
+			--]]
+			metaArgs[key] = nil
+			nilArgs[key] = 'h'
+		else
+			metaArgs[key] = val
+		end
+	end
+
+	local function translatenext(invariant)
+		local k, v = next(invariant.t, invariant.k)
+		invariant.k = k
+		if k == nil then
+			return nil
+		elseif type(k) ~= 'string' or not options.backtranslate then
+			return k, v
+		else
+			local backtranslate = options.backtranslate[k]
+			if backtranslate == nil then
+				-- Skip this one. This is a tail call, so this won't cause stack overflow
+				return translatenext(invariant)
+			else
+				return backtranslate, v
+			end
+		end
+	end
+
+	metatable.__pairs = function ()
+		-- Called when pairs is run on the args table.
+		if not metatable.donePairs then
+			mergeArgs(argTables)
+			metatable.donePairs = true
+		end
+		return translatenext, { t = metaArgs }
+	end
+
+	local function inext(t, i)
+		-- This uses our __index metamethod
+		local v = t[i + 1]
+		if v ~= nil then
+			return i + 1, v
+		end
+	end
+
+	metatable.__ipairs = function (t)
+		-- Called when ipairs is run on the args table.
+		return inext, t, 0
+	end
+
+	return args
+end
+
+return arguments</text>
+      <sha1>5qx9tzlul9ser30uxj9nbasjt92cevn</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>Module:Category handler</title>
+    <ns>828</ns>
+    <id>39772274</id>
+    <revision>
+      <id>617942873</id>
+      <parentid>616811662</parentid>
+      <timestamp>2014-07-22T05:08:26Z</timestamp>
+      <contributor>
+        <username>Mr. Stradivarius</username>
+        <id>4708675</id>
+      </contributor>
+      <comment>allow invocations specifying the page parameter to use the mw.loadData optimisations, and don't call mw.title.new every time</comment>
+      <model>Scribunto</model>
+      <format>text/plain</format>
+      <text xml:space="preserve" bytes="7871">--------------------------------------------------------------------------------
+--                                                                            --
+--                              CATEGORY HANDLER                              --
+--                                                                            --
+--      This module implements the {{category handler}} template in Lua,      --
+--      with a few improvements: all namespaces and all namespace aliases     --
+--      are supported, and namespace names are detected automatically for     --
+--      the local wiki. This module requires [[Module:Namespace detect]]      --
+--      and [[Module:Yesno]] to be available on the local wiki. It can be     --
+--      configured for different wikis by altering the values in              --
+--      [[Module:Category handler/config]], and pages can be blacklisted      --
+--      from categorisation by using [[Module:Category handler/blacklist]].   --
+--                                                                            --
+--------------------------------------------------------------------------------
+
+-- Load required modules
+local yesno = require('Module:Yesno')
+
+-- Lazily load things we don't always need
+local mShared, mappings
+
+local p = {}
+
+--------------------------------------------------------------------------------
+-- Helper functions
+--------------------------------------------------------------------------------
+
+local function trimWhitespace(s, removeBlanks)
+	if type(s) ~= 'string' then
+		return s
+	end
+	s = s:match('^%s*(.-)%s*$')
+	if removeBlanks then
+		if s ~= '' then
+			return s
+		else
+			return nil
+		end
+	else
+		return s
+	end
+end
+
+--------------------------------------------------------------------------------
+-- CategoryHandler class
+--------------------------------------------------------------------------------
+
+local CategoryHandler = {}
+CategoryHandler.__index = CategoryHandler
+
+function CategoryHandler.new(data, args)
+	local obj = setmetatable({ _data = data, _args = args }, CategoryHandler)
+	
+	-- Set the title object
+	do
+		local pagename = obj:parameter('demopage')
+		local success, titleObj
+		if pagename then
+			success, titleObj = pcall(mw.title.new, pagename)
+		end
+		if success and titleObj then
+			obj.title = titleObj
+			if titleObj == mw.title.getCurrentTitle() then
+				obj._usesCurrentTitle = true
+			end
+		else
+			obj.title = mw.title.getCurrentTitle()
+			obj._usesCurrentTitle = true
+		end
+	end
+
+	-- Set suppression parameter values
+	for _, key in ipairs{'nocat', 'categories'} do
+		local value = obj:parameter(key)
+		value = trimWhitespace(value, true)
+		obj['_' .. key] = yesno(value)
+	end
+	do
+		local subpage = obj:parameter('subpage')
+		local category2 = obj:parameter('category2')
+		if type(subpage) == 'string' then
+			subpage = mw.ustring.lower(subpage)
+		end
+		if type(category2) == 'string' then
+			subpage = mw.ustring.lower(category2)
+		end
+		obj._subpage = trimWhitespace(subpage, true)
+		obj._category2 = trimWhitespace(category2) -- don't remove blank values
+	end
+	return obj
+end
+
+function CategoryHandler:parameter(key)
+	local parameterNames = self._data.parameters[key]
+	local pntype = type(parameterNames)
+	if pntype == 'string' or pntype == 'number' then
+		return self._args[parameterNames]
+	elseif pntype == 'table' then
+		for _, name in ipairs(parameterNames) do
+			local value = self._args[name]
+			if value ~= nil then
+				return value
+			end
+		end
+		return nil
+	else
+		error(string.format(
+			'invalid config key &quot;%s&quot;',
+			tostring(key)
+		), 2)
+	end
+end
+
+function CategoryHandler:isSuppressedByArguments()
+	return
+		-- See if a category suppression argument has been set.
+		self._nocat == true
+		or self._categories == false
+		or (
+			self._category2
+			and self._category2 ~= self._data.category2Yes
+			and self._category2 ~= self._data.category2Negative
+		)
+
+		-- Check whether we are on a subpage, and see if categories are
+		-- suppressed based on our subpage status.
+		or self._subpage == self._data.subpageNo and self.title.isSubpage
+		or self._subpage == self._data.subpageOnly and not self.title.isSubpage
+end
+
+function CategoryHandler:shouldSkipBlacklistCheck()
+	-- Check whether the category suppression arguments indicate we
+	-- should skip the blacklist check.
+	return self._nocat == false
+		or self._categories == true
+		or self._category2 == self._data.category2Yes
+end
+
+function CategoryHandler:matchesBlacklist()
+	if self._usesCurrentTitle then
+		return self._data.currentTitleMatchesBlacklist
+	else
+		mShared = mShared or require('Module:Category handler/shared')
+		return mShared.matchesBlacklist(
+			self.title.prefixedText,
+			mw.loadData('Module:Category handler/blacklist')
+		)
+	end
+end
+
+function CategoryHandler:isSuppressed()
+	-- Find if categories are suppressed by either the arguments or by
+	-- matching the blacklist.
+	return self:isSuppressedByArguments()
+		or not self:shouldSkipBlacklistCheck() and self:matchesBlacklist()
+end
+
+function CategoryHandler:getNamespaceParameters()
+	if self._usesCurrentTitle then
+		return self._data.currentTitleNamespaceParameters
+	else
+		if not mappings then
+			mShared = mShared or require('Module:Category handler/shared')
+			mappings = mShared.getParamMappings(true) -- gets mappings with mw.loadData
+		end
+		return mShared.getNamespaceParameters(
+			self.title,
+			mappings
+		)
+	end
+end
+
+function CategoryHandler:namespaceParametersExist()
+	-- Find whether any namespace parameters have been specified.
+	-- We use the order &quot;all&quot; --&gt; namespace params --&gt; &quot;other&quot; as this is what
+	-- the old template did.
+	if self:parameter('all') then
+		return true
+	end
+	if not mappings then
+		mShared = mShared or require('Module:Category handler/shared')
+		mappings = mShared.getParamMappings(true) -- gets mappings with mw.loadData
+	end
+	for ns, params in pairs(mappings) do
+		for i, param in ipairs(params) do
+			if self._args[param] then
+				return true
+			end
+		end
+	end
+	if self:parameter('other') then
+		return true
+	end
+	return false
+end
+
+function CategoryHandler:getCategories()
+	local params = self:getNamespaceParameters()
+	local nsCategory
+	for i, param in ipairs(params) do
+		local value = self._args[param]
+		if value ~= nil then
+			nsCategory = value
+			break
+		end
+	end
+	if nsCategory ~= nil or self:namespaceParametersExist() then
+		-- Namespace parameters exist - advanced usage.
+		if nsCategory == nil then
+			nsCategory = self:parameter('other')
+		end
+		local ret = {self:parameter('all')}
+		local numParam = tonumber(nsCategory)
+		if numParam and numParam &gt;= 1 and math.floor(numParam) == numParam then
+			-- nsCategory is an integer
+			ret[#ret + 1] = self._args[numParam]
+		else
+			ret[#ret + 1] = nsCategory
+		end
+		if #ret &lt; 1 then
+			return nil
+		else
+			return table.concat(ret)
+		end
+	elseif self._data.defaultNamespaces[self.title.namespace] then
+		-- Namespace parameters don't exist, simple usage.
+		return self._args[1]
+	end
+	return nil
+end
+
+--------------------------------------------------------------------------------
+-- Exports
+--------------------------------------------------------------------------------
+
+local p = {}
+
+function p._exportClasses()
+	-- Used for testing purposes.
+	return {
+		CategoryHandler = CategoryHandler
+	}
+end
+
+function p._main(args, data)
+	data = data or mw.loadData('Module:Category handler/data')
+	local handler = CategoryHandler.new(data, args)
+	if handler:isSuppressed() then
+		return nil
+	end
+	return handler:getCategories()
+end
+
+function p.main(frame, data)
+	data = data or mw.loadData('Module:Category handler/data')
+	local args = require('Module:Arguments').getArgs(frame, {
+		wrappers = data.wrappers,
+		valueFunc = function (k, v)
+			v = trimWhitespace(v)
+			if type(k) == 'number' then
+				if v ~= '' then
+					return v
+				else
+					return nil
+				end
+			else
+				return v
+			end
+		end
+	})
+	return p._main(args, data)
+end
+
+return p</text>
+      <sha1>letwavu3yvlayfzew66uuwixmwebq5b</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>Module:Category handler/blacklist</title>
+    <ns>828</ns>
+    <id>43232926</id>
+    <revision>
+      <id>616764246</id>
+      <parentid>616071213</parentid>
+      <timestamp>2014-07-13T09:07:09Z</timestamp>
+      <contributor>
+        <username>Mr. Stradivarius</username>
+        <id>4708675</id>
+      </contributor>
+      <minor/>
+      <comment>Protected Module:Category handler/blacklist: [[WP:High-risk templates|High-risk Lua module]] ([Edit=Allow only template editors and admins] (indefinite) [Move=Allow only template editors and admins] (indefinite))</comment>
+      <model>Scribunto</model>
+      <format>text/plain</format>
+      <text xml:space="preserve" bytes="732">-- This module contains the blacklist used by [[Module:Category handler]].
+-- Pages that match Lua patterns in this list will not be categorised unless
+-- categorisation is explicitly requested.
+
+return {
+    '^Main Page$', -- don't categorise the main page.
+ 
+    -- Don't categorise the following pages or their subpages.
+    -- &quot;%f[/\0]&quot; matches if the next character is &quot;/&quot; or the end of the string.
+    '^Wikipedia:Cascade%-protected items%f[/\0]',
+    '^User:UBX%f[/\0]', -- The userbox &quot;template&quot; space.
+    '^User talk:UBX%f[/\0]',
+ 
+    -- Don't categorise subpages of these pages, but allow
+    -- categorisation of the base page.
+    '^Wikipedia:Template messages/.*$',
+ 
+    '/[aA]rchive' -- Don't categorise archives.
+}</text>
+      <sha1>ne8sdldor304iu81gnqa05p401j3exc</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>Module:Category handler/config</title>
+    <ns>828</ns>
+    <id>42291997</id>
+    <revision>
+      <id>616764079</id>
+      <parentid>616045566</parentid>
+      <timestamp>2014-07-13T09:05:36Z</timestamp>
+      <contributor>
+        <username>Mr. Stradivarius</username>
+        <id>4708675</id>
+      </contributor>
+      <minor/>
+      <comment>Protected Module:Category handler/config: [[WP:High-risk templates|High-risk Lua module]] ([Edit=Allow only template editors and admins] (indefinite) [Move=Allow only template editors and admins] (indefinite))</comment>
+      <model>Scribunto</model>
+      <format>text/plain</format>
+      <text xml:space="preserve" bytes="5755">--------------------------------------------------------------------------------
+--            [[Module:Category handler]] configuration data                  --
+--       Language-specific parameter names and values can be set here.        --
+--       For blacklist config, see [[Module:Category handler/blacklist]].     --
+--------------------------------------------------------------------------------
+
+local cfg = {} -- Don't edit this line.
+
+--------------------------------------------------------------------------------
+--                       Start configuration data                             --
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+--                              Parameter names                               --
+-- These configuration items specify custom parameter names.                  --
+-- To add one extra name, you can use this format:                            --
+--                                                                            --
+-- foo = 'parameter name',                                                    --
+--                                                                            --
+-- To add multiple names, you can use this format:                            --
+--                                                                            --
+-- foo = {'parameter name 1', 'parameter name 2', 'parameter name 3'},        --
+--------------------------------------------------------------------------------
+
+cfg.parameters = {
+	
+	-- The nocat and categories parameter suppress
+	-- categorisation. They are used with Module:Yesno, and work as follows:
+	--
+	-- cfg.nocat:
+	-- Result of yesno()                        Effect
+	-- true                                     Categorisation is suppressed
+	-- false                                    Categorisation is allowed, and
+	--                                          the blacklist check is skipped
+	-- nil                                      Categorisation is allowed
+	--
+	-- cfg.categories:
+	-- Result of yesno()                        Effect
+	-- true                                     Categorisation is allowed, and
+	--                                          the blacklist check is skipped
+	-- false                                    Categorisation is suppressed
+	-- nil                                      Categorisation is allowed
+	nocat = 'nocat',
+	categories = 'categories',
+	
+	-- The parameter name for the legacy &quot;category2&quot; parameter. This skips the
+	-- blacklist if set to the cfg.category2Yes value, and suppresses
+	-- categorisation if present but equal to anything other than
+	-- cfg.category2Yes or cfg.category2Negative.
+	category2 = 'category2',
+	
+	-- cfg.subpage is the parameter name to specify how to behave on subpages.
+	subpage = 'subpage',
+	
+	-- The parameter for data to return in all namespaces.
+	all = 'all',
+	
+	-- The parameter name for data to return if no data is specified for the
+	-- namespace that is detected.
+	other = 'other',
+	
+	-- The parameter name used to specify a page other than the current page;
+	-- used for testing and demonstration.
+	demopage = 'page',
+}
+
+--------------------------------------------------------------------------------
+--                              Parameter values                              --
+-- These are set values that can be used with certain parameters. Only one    --
+-- value can be specified, like this:                                         --
+--                                                                            --
+-- cfg.foo = 'value name'                                                     --                                               --
+--------------------------------------------------------------------------------
+
+-- The following settings are used with the cfg.category2 parameter. Setting
+-- cfg.category2 to cfg.category2Yes skips the blacklist, and if cfg.category2
+-- is present but equal to anything other than cfg.category2Yes or
+-- cfg.category2Negative then it supresses cateogrisation.
+cfg.category2Yes = 'yes'
+cfg.category2Negative = '¬'
+
+-- The following settings are used with the cfg.subpage parameter.
+-- cfg.subpageNo is the value to specify to not categorise on subpages;
+-- cfg.subpageOnly is the value to specify to only categorise on subpages.
+cfg.subpageNo = 'no'
+cfg.subpageOnly = 'only'
+
+--------------------------------------------------------------------------------
+--                           Default namespaces                               --
+-- This is a table of namespaces to categorise by default. The keys are the   --
+-- namespace numbers.                                                         --
+--------------------------------------------------------------------------------
+
+cfg.defaultNamespaces = {
+	[  0] = true, -- main
+	[  6] = true, -- file
+	[ 12] = true, -- help
+	[ 14] = true, -- category
+	[100] = true, -- portal
+	[108] = true, -- book
+}
+
+--------------------------------------------------------------------------------
+--                                Wrappers                                    --
+-- This is a wrapper template or a list of wrapper templates to be passed to  --
+-- [[Module:Arguments]].                                                      --
+--------------------------------------------------------------------------------
+
+cfg.wrappers = 'Template:Category handler'
+
+--------------------------------------------------------------------------------
+--                           End configuration data                           --
+--------------------------------------------------------------------------------
+
+return cfg -- Don't edit this line.</text>
+      <sha1>6ga9hbq2pdwalsvx68i53dmbr421rq5</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>Module:Category handler/data</title>
+    <ns>828</ns>
+    <id>43233647</id>
+    <revision>
+      <id>616764105</id>
+      <parentid>616020360</parentid>
+      <timestamp>2014-07-13T09:05:55Z</timestamp>
+      <contributor>
+        <username>Mr. Stradivarius</username>
+        <id>4708675</id>
+      </contributor>
+      <minor/>
+      <comment>Protected Module:Category handler/data: [[WP:High-risk templates|High-risk Lua module]] ([Edit=Allow only template editors and admins] (indefinite) [Move=Allow only template editors and admins] (indefinite))</comment>
+      <model>Scribunto</model>
+      <format>text/plain</format>
+      <text xml:space="preserve" bytes="631">-- This module assembles data to be passed to [[Module:Category handler]] using
+-- mw.loadData. This includes the configuration data and whether the current
+-- page matches the title blacklist.
+
+local data = require('Module:Category handler/config')
+local mShared = require('Module:Category handler/shared')
+local blacklist = require('Module:Category handler/blacklist')
+local title = mw.title.getCurrentTitle()
+
+data.currentTitleMatchesBlacklist = mShared.matchesBlacklist(
+	title.prefixedText,
+	blacklist
+)
+
+data.currentTitleNamespaceParameters = mShared.getNamespaceParameters(
+	title,
+	mShared.getParamMappings()
+)
+
+return data</text>
+      <sha1>k26mwixuaeijisfddb0sxkg82iux8v4</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>Module:Category handler/shared</title>
+    <ns>828</ns>
+    <id>43232937</id>
+    <revision>
+      <id>616764145</id>
+      <parentid>616020201</parentid>
+      <timestamp>2014-07-13T09:06:15Z</timestamp>
+      <contributor>
+        <username>Mr. Stradivarius</username>
+        <id>4708675</id>
+      </contributor>
+      <minor/>
+      <comment>Protected Module:Category handler/shared: [[WP:High-risk templates|High-risk Lua module]] ([Edit=Allow only template editors and admins] (indefinite) [Move=Allow only template editors and admins] (indefinite))</comment>
+      <model>Scribunto</model>
+      <format>text/plain</format>
+      <text xml:space="preserve" bytes="888">-- This module contains shared functions used by [[Module:Category handler]]
+-- and its submodules.
+
+local p = {}
+
+function p.matchesBlacklist(page, blacklist)
+	for i, pattern in ipairs(blacklist) do
+		local match = mw.ustring.match(page, pattern)
+		if match then
+			return true
+		end
+	end
+	return false
+end
+
+function p.getParamMappings(useLoadData)
+	local dataPage = 'Module:Namespace detect/data'
+	if useLoadData then
+		return mw.loadData(dataPage).mappings
+	else
+		return require(dataPage).mappings
+	end
+end
+
+function p.getNamespaceParameters(titleObj, mappings)
+	-- We don't use title.nsText for the namespace name because it adds
+	-- underscores.
+	local mappingsKey
+	if titleObj.isTalkPage then
+		mappingsKey = 'talk'
+	else
+		mappingsKey = mw.site.namespaces[titleObj.namespace].name
+	end
+	mappingsKey = mw.ustring.lower(mappingsKey)
+	return mappings[mappingsKey] or {}
+end
+
+return p</text>
+      <sha1>omlsnhudxz6juptvtxz7ns97jutbzc5</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>Module:Message box</title>
+    <ns>828</ns>
+    <id>40574910</id>
+    <revision>
+      <id>717357677</id>
+      <parentid>717160085</parentid>
+      <timestamp>2016-04-27T06:34:52Z</timestamp>
+      <contributor>
+        <username>Mr. Stradivarius</username>
+        <id>4708675</id>
+      </contributor>
+      <comment>move the removal notice inline</comment>
+      <model>Scribunto</model>
+      <format>text/plain</format>
+      <text xml:space="preserve" bytes="16834">-- This is a meta-module for producing message box templates, including
+-- {{mbox}}, {{ambox}}, {{imbox}}, {{tmbox}}, {{ombox}}, {{cmbox}} and {{fmbox}}.
+
+-- Load necessary modules.
+require('Module:No globals')
+local getArgs
+local categoryHandler = require('Module:Category handler')._main
+local yesno = require('Module:Yesno')
+
+-- Get a language object for formatDate and ucfirst.
+local lang = mw.language.getContentLanguage()
+
+-- Define constants
+local CONFIG_MODULE = 'Module:Message box/configuration'
+
+--------------------------------------------------------------------------------
+-- Helper functions
+--------------------------------------------------------------------------------
+
+local function getTitleObject(...)
+	-- Get the title object, passing the function through pcall
+	-- in case we are over the expensive function count limit.
+	local success, title = pcall(mw.title.new, ...)
+	if success then
+		return title
+	end
+end
+
+local function union(t1, t2)
+	-- Returns the union of two arrays.
+	local vals = {}
+	for i, v in ipairs(t1) do
+		vals[v] = true
+	end
+	for i, v in ipairs(t2) do
+		vals[v] = true
+	end
+	local ret = {}
+	for k in pairs(vals) do
+		table.insert(ret, k)
+	end
+	table.sort(ret)
+	return ret
+end
+
+local function getArgNums(args, prefix)
+	local nums = {}
+	for k, v in pairs(args) do
+		local num = mw.ustring.match(tostring(k), '^' .. prefix .. '([1-9]%d*)$')
+		if num then
+			table.insert(nums, tonumber(num))
+		end
+	end
+	table.sort(nums)
+	return nums
+end
+
+--------------------------------------------------------------------------------
+-- Box class definition
+--------------------------------------------------------------------------------
+
+local MessageBox = {}
+MessageBox.__index = MessageBox
+
+function MessageBox.new(boxType, args, cfg)
+	args = args or {}
+	local obj = {}
+
+	-- Set the title object and the namespace.
+	obj.title = getTitleObject(args.page) or mw.title.getCurrentTitle()
+
+	-- Set the config for our box type.
+	obj.cfg = cfg[boxType]
+	if not obj.cfg then
+		local ns = obj.title.namespace
+		-- boxType is &quot;mbox&quot; or invalid input
+		if ns == 0 then
+			obj.cfg = cfg.ambox -- main namespace
+		elseif ns == 6 then
+			obj.cfg = cfg.imbox -- file namespace
+		elseif ns == 14 then
+			obj.cfg = cfg.cmbox -- category namespace
+		else
+			local nsTable = mw.site.namespaces[ns]
+			if nsTable and nsTable.isTalk then
+				obj.cfg = cfg.tmbox -- any talk namespace
+			else
+				obj.cfg = cfg.ombox -- other namespaces or invalid input
+			end
+		end
+	end
+
+	-- Set the arguments, and remove all blank arguments except for the ones
+	-- listed in cfg.allowBlankParams.
+	do
+		local newArgs = {}
+		for k, v in pairs(args) do
+			if v ~= '' then
+				newArgs[k] = v
+			end
+		end
+		for i, param in ipairs(obj.cfg.allowBlankParams or {}) do
+			newArgs[param] = args[param]
+		end
+		obj.args = newArgs
+	end
+
+	-- Define internal data structure.
+	obj.categories = {}
+	obj.classes = {}
+
+	return setmetatable(obj, MessageBox)
+end
+
+function MessageBox:addCat(ns, cat, sort)
+	if not cat then
+		return nil
+	end
+	if sort then
+		cat = string.format('[[Category:%s|%s]]', cat, sort)
+	else
+		cat = string.format('[[Category:%s]]', cat)
+	end
+	self.categories[ns] = self.categories[ns] or {}
+	table.insert(self.categories[ns], cat)
+end
+
+function MessageBox:addClass(class)
+	if not class then
+		return nil
+	end
+	table.insert(self.classes, class)
+end
+
+function MessageBox:setParameters()
+	local args = self.args
+	local cfg = self.cfg
+
+	-- Get type data.
+	self.type = args.type
+	local typeData = cfg.types[self.type]
+	self.invalidTypeError = cfg.showInvalidTypeError
+		and self.type
+		and not typeData
+	typeData = typeData or cfg.types[cfg.default]
+	self.typeClass = typeData.class
+	self.typeImage = typeData.image
+
+	-- Find if the box has been wrongly substituted.
+	self.isSubstituted = cfg.substCheck and args.subst == 'SUBST'
+
+	-- Find whether we are using a small message box.
+	self.isSmall = cfg.allowSmall and (
+		cfg.smallParam and args.small == cfg.smallParam
+		or not cfg.smallParam and yesno(args.small)
+	)
+
+	-- Add attributes, classes and styles.
+	self.id = args.id
+	self:addClass(
+		cfg.usePlainlinksParam and yesno(args.plainlinks or true) and 'plainlinks'
+	)
+	for _, class in ipairs(cfg.classes or {}) do
+		self:addClass(class)
+	end
+	if self.isSmall then
+		self:addClass(cfg.smallClass or 'mbox-small')
+	end
+	self:addClass(self.typeClass)
+	self:addClass(args.class)
+	self.style = args.style
+	self.attrs = args.attrs
+
+	-- Set text style.
+	self.textstyle = args.textstyle
+
+	-- Find if we are on the template page or not. This functionality is only
+	-- used if useCollapsibleTextFields is set, or if both cfg.templateCategory
+	-- and cfg.templateCategoryRequireName are set.
+	self.useCollapsibleTextFields = cfg.useCollapsibleTextFields
+	if self.useCollapsibleTextFields
+		or cfg.templateCategory
+		and cfg.templateCategoryRequireName
+	then
+		self.name = args.name
+		if self.name then
+			local templateName = mw.ustring.match(
+				self.name,
+				'^[tT][eE][mM][pP][lL][aA][tT][eE][%s_]*:[%s_]*(.*)$'
+			) or self.name
+			templateName = 'Template:' .. templateName
+			self.templateTitle = getTitleObject(templateName)
+		end
+		self.isTemplatePage = self.templateTitle
+			and mw.title.equals(self.title, self.templateTitle)
+	end
+
+	-- Process data for collapsible text fields. At the moment these are only
+	-- used in {{ambox}}.
+	if self.useCollapsibleTextFields then
+		-- Get the self.issue value.
+		if self.isSmall and args.smalltext then
+			self.issue = args.smalltext
+		else
+			local sect
+			if args.sect == '' then
+				sect = 'This ' .. (cfg.sectionDefault or 'page')
+			elseif type(args.sect) == 'string' then
+				sect = 'This ' .. args.sect
+			end
+			local issue = args.issue
+			issue = type(issue) == 'string' and issue ~= '' and issue or nil
+			local text = args.text
+			text = type(text) == 'string' and text or nil
+			local issues = {}
+			table.insert(issues, sect)
+			table.insert(issues, issue)
+			table.insert(issues, text)
+			self.issue = table.concat(issues, ' ')
+		end
+
+		-- Get the self.talk value.
+		local talk = args.talk
+		-- Show talk links on the template page or template subpages if the talk
+		-- parameter is blank.
+		if talk == ''
+			and self.templateTitle
+			and (
+				mw.title.equals(self.templateTitle, self.title)
+				or self.title:isSubpageOf(self.templateTitle)
+			)
+		then
+			talk = '#'
+		elseif talk == '' then
+			talk = nil
+		end
+		if talk then
+			-- If the talk value is a talk page, make a link to that page. Else
+			-- assume that it's a section heading, and make a link to the talk
+			-- page of the current page with that section heading.
+			local talkTitle = getTitleObject(talk)
+			local talkArgIsTalkPage = true
+			if not talkTitle or not talkTitle.isTalkPage then
+				talkArgIsTalkPage = false
+				talkTitle = getTitleObject(
+					self.title.text,
+					mw.site.namespaces[self.title.namespace].talk.id
+				)
+			end
+			if talkTitle and talkTitle.exists then
+				local talkText = 'Relevant discussion may be found on'
+				if talkArgIsTalkPage then
+					talkText = string.format(
+						'%s [[%s|%s]].',
+						talkText,
+						talk,
+						talkTitle.prefixedText
+					)
+				else
+					talkText = string.format(
+						'%s the [[%s#%s|talk page]].',
+						talkText,
+						talkTitle.prefixedText,
+						talk
+					)
+				end
+				self.talk = talkText
+			end
+		end
+
+		-- Get other values.
+		self.fix = args.fix ~= '' and args.fix or nil
+		local date
+		if args.date and args.date ~= '' then
+			date = args.date
+		elseif args.date == '' and self.isTemplatePage then
+			date = lang:formatDate('F Y')
+		end
+		if date then
+			self.date = string.format(&quot; &lt;small&gt;''(%s)''&lt;/small&gt;&quot;, date)
+		end
+		self.info = args.info
+		if yesno(args.removalnotice) then
+			self.removalNotice = cfg.removalNotice
+		end
+	end
+
+	-- Set the non-collapsible text field. At the moment this is used by all box
+	-- types other than ambox, and also by ambox when small=yes.
+	if self.isSmall then
+		self.text = args.smalltext or args.text
+	else
+		self.text = args.text
+	end
+
+	-- Set the below row.
+	self.below = cfg.below and args.below
+
+	-- General image settings.
+	self.imageCellDiv = not self.isSmall and cfg.imageCellDiv
+	self.imageEmptyCell = cfg.imageEmptyCell
+	if cfg.imageEmptyCellStyle then
+		self.imageEmptyCellStyle = 'border:none;padding:0px;width:1px'
+	end
+
+	-- Left image settings.
+	local imageLeft = self.isSmall and args.smallimage or args.image
+	if cfg.imageCheckBlank and imageLeft ~= 'blank' and imageLeft ~= 'none'
+		or not cfg.imageCheckBlank and imageLeft ~= 'none'
+	then
+		self.imageLeft = imageLeft
+		if not imageLeft then
+			local imageSize = self.isSmall
+				and (cfg.imageSmallSize or '30x30px')
+				or '40x40px'
+			self.imageLeft = string.format('[[File:%s|%s|link=|alt=]]', self.typeImage
+				or 'Imbox notice.png', imageSize)
+		end
+	end
+
+	-- Right image settings.
+	local imageRight = self.isSmall and args.smallimageright or args.imageright
+	if not (cfg.imageRightNone and imageRight == 'none') then
+		self.imageRight = imageRight
+	end
+end
+
+function MessageBox:setMainspaceCategories()
+	local args = self.args
+	local cfg = self.cfg
+
+	if not cfg.allowMainspaceCategories then
+		return nil
+	end
+
+	local nums = {}
+	for _, prefix in ipairs{'cat', 'category', 'all'} do
+		args[prefix .. '1'] = args[prefix]
+		nums = union(nums, getArgNums(args, prefix))
+	end
+
+	-- The following is roughly equivalent to the old {{Ambox/category}}.
+	local date = args.date
+	date = type(date) == 'string' and date
+	local preposition = 'from'
+	for _, num in ipairs(nums) do
+		local mainCat = args['cat' .. tostring(num)]
+			or args['category' .. tostring(num)]
+		local allCat = args['all' .. tostring(num)]
+		mainCat = type(mainCat) == 'string' and mainCat
+		allCat = type(allCat) == 'string' and allCat
+		if mainCat and date and date ~= '' then
+			local catTitle = string.format('%s %s %s', mainCat, preposition, date)
+			self:addCat(0, catTitle)
+			catTitle = getTitleObject('Category:' .. catTitle)
+			if not catTitle or not catTitle.exists then
+				self:addCat(0, 'Articles with invalid date parameter in template')
+			end
+		elseif mainCat and (not date or date == '') then
+			self:addCat(0, mainCat)
+		end
+		if allCat then
+			self:addCat(0, allCat)
+		end
+	end
+end
+
+function MessageBox:setTemplateCategories()
+	local args = self.args
+	local cfg = self.cfg
+
+	-- Add template categories.
+	if cfg.templateCategory then
+		if cfg.templateCategoryRequireName then
+			if self.isTemplatePage then
+				self:addCat(10, cfg.templateCategory)
+			end
+		elseif not self.title.isSubpage then
+			self:addCat(10, cfg.templateCategory)
+		end
+	end
+
+	-- Add template error categories.
+	if cfg.templateErrorCategory then
+		local templateErrorCategory = cfg.templateErrorCategory
+		local templateCat, templateSort
+		if not self.name and not self.title.isSubpage then
+			templateCat = templateErrorCategory
+		elseif self.isTemplatePage then
+			local paramsToCheck = cfg.templateErrorParamsToCheck or {}
+			local count = 0
+			for i, param in ipairs(paramsToCheck) do
+				if not args[param] then
+					count = count + 1
+				end
+			end
+			if count &gt; 0 then
+				templateCat = templateErrorCategory
+				templateSort = tostring(count)
+			end
+			if self.categoryNums and #self.categoryNums &gt; 0 then
+				templateCat = templateErrorCategory
+				templateSort = 'C'
+			end
+		end
+		self:addCat(10, templateCat, templateSort)
+	end
+end
+
+function MessageBox:setAllNamespaceCategories()
+	-- Set categories for all namespaces.
+	if self.invalidTypeError then
+		local allSort = (self.title.namespace == 0 and 'Main:' or '') .. self.title.prefixedText
+		self:addCat('all', 'Wikipedia message box parameter needs fixing', allSort)
+	end
+	if self.isSubstituted then
+		self:addCat('all', 'Pages with incorrectly substituted templates')
+	end
+end
+
+function MessageBox:setCategories()
+	if self.title.namespace == 0 then
+		self:setMainspaceCategories()
+	elseif self.title.namespace == 10 then
+		self:setTemplateCategories()
+	end
+	self:setAllNamespaceCategories()
+end
+
+function MessageBox:renderCategories()
+	-- Convert category tables to strings and pass them through
+	-- [[Module:Category handler]].
+	return categoryHandler{
+		main = table.concat(self.categories[0] or {}),
+		template = table.concat(self.categories[10] or {}),
+		all = table.concat(self.categories.all or {}),
+		nocat = self.args.nocat,
+		page = self.args.page
+	}
+end
+
+function MessageBox:export()
+	local root = mw.html.create()
+
+	-- Add the subst check error.
+	if self.isSubstituted and self.name then
+		root:tag('b')
+			:addClass('error')
+			:wikitext(string.format(
+				'Template &lt;code&gt;%s[[Template:%s|%s]]%s&lt;/code&gt; has been incorrectly substituted.',
+				mw.text.nowiki('{{'), self.name, self.name, mw.text.nowiki('}}')
+			))
+	end
+
+	-- Create the box table.
+	local boxTable = root:tag('table')
+	boxTable:attr('id', self.id or nil)
+	for i, class in ipairs(self.classes or {}) do
+		boxTable:addClass(class or nil)
+	end
+	boxTable
+		:cssText(self.style or nil)
+		:attr('role', 'presentation')
+
+	if self.attrs then
+		boxTable:attr(self.attrs)
+	end
+
+	-- Add the left-hand image.
+	local row = boxTable:tag('tr')
+	if self.imageLeft then
+		local imageLeftCell = row:tag('td'):addClass('mbox-image')
+		if self.imageCellDiv then
+			-- If we are using a div, redefine imageLeftCell so that the image
+			-- is inside it. Divs use style=&quot;width: 52px;&quot;, which limits the
+			-- image width to 52px. If any images in a div are wider than that,
+			-- they may overlap with the text or cause other display problems.
+			imageLeftCell = imageLeftCell:tag('div'):css('width', '52px')
+		end
+		imageLeftCell:wikitext(self.imageLeft or nil)
+	elseif self.imageEmptyCell then
+		-- Some message boxes define an empty cell if no image is specified, and
+		-- some don't. The old template code in templates where empty cells are
+		-- specified gives the following hint: &quot;No image. Cell with some width
+		-- or padding necessary for text cell to have 100% width.&quot;
+		row:tag('td')
+			:addClass('mbox-empty-cell')
+			:cssText(self.imageEmptyCellStyle or nil)
+	end
+
+	-- Add the text.
+	local textCell = row:tag('td'):addClass('mbox-text')
+	if self.useCollapsibleTextFields then
+		-- The message box uses advanced text parameters that allow things to be
+		-- collapsible. At the moment, only ambox uses this.
+		textCell:cssText(self.textstyle or nil)
+		local textCellSpan = textCell:tag('span')
+		textCellSpan
+			:addClass('mbox-text-span')
+			:wikitext(self.issue or nil)
+		if (self.talk or self.fix) and not self.isSmall then
+			textCellSpan:tag('span')
+				:addClass('hide-when-compact')
+				:wikitext(self.talk and (' ' .. self.talk) or nil)
+				:wikitext(self.fix and (' ' .. self.fix) or nil)
+		end
+		textCellSpan:wikitext(self.date and (' ' .. self.date) or nil)
+		if self.info and not self.isSmall then
+			textCellSpan
+				:tag('span')
+				:addClass('hide-when-compact')
+				:wikitext(self.info and (' ' .. self.info) or nil)
+		end
+		if self.removalNotice then
+			textCellSpan:tag('small')
+				:addClass('hide-when-compact')
+				:tag('i')
+					:wikitext(string.format(&quot; (%s)&quot;, self.removalNotice))
+		end
+	else
+		-- Default text formatting - anything goes.
+		textCell
+			:cssText(self.textstyle or nil)
+			:wikitext(self.text or nil)
+	end
+
+	-- Add the right-hand image.
+	if self.imageRight then
+		local imageRightCell = row:tag('td'):addClass('mbox-imageright')
+		if self.imageCellDiv then
+			-- If we are using a div, redefine imageRightCell so that the image
+			-- is inside it.
+			imageRightCell = imageRightCell:tag('div'):css('width', '52px')
+		end
+		imageRightCell
+			:wikitext(self.imageRight or nil)
+	end
+
+	-- Add the below row.
+	if self.below then
+		boxTable:tag('tr')
+			:tag('td')
+				:attr('colspan', self.imageRight and '3' or '2')
+				:addClass('mbox-text')
+				:cssText(self.textstyle or nil)
+				:wikitext(self.below or nil)
+	end
+
+	-- Add error message for invalid type parameters.
+	if self.invalidTypeError then
+		root:tag('div')
+			:css('text-align', 'center')
+			:wikitext(string.format(
+				'This message box is using an invalid &quot;type=%s&quot; parameter and needs fixing.',
+				self.type or ''
+			))
+	end
+
+	-- Add categories.
+	root:wikitext(self:renderCategories() or nil)
+
+	return tostring(root)
+end
+
+--------------------------------------------------------------------------------
+-- Exports
+--------------------------------------------------------------------------------
+
+local p, mt = {}, {}
+
+function p._exportClasses()
+	-- For testing.
+	return {
+		MessageBox = MessageBox
+	}
+end
+
+function p.main(boxType, args, cfgTables)
+	local box = MessageBox.new(boxType, args, cfgTables or mw.loadData(CONFIG_MODULE))
+	box:setParameters()
+	box:setCategories()
+	return box:export()
+end
+
+function mt.__index(t, k)
+	return function (frame)
+		if not getArgs then
+			getArgs = require('Module:Arguments').getArgs
+		end
+		return t.main(k, getArgs(frame, {trim = false, removeBlanks = false}))
+	end
+end
+
+return setmetatable(p, mt)</text>
+      <sha1>laddk20x05xtladrbt2aqotnob4pune</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>Module:Message box/configuration</title>
+    <ns>828</ns>
+    <id>40627038</id>
+    <revision>
+      <id>717357572</id>
+      <parentid>717159763</parentid>
+      <timestamp>2016-04-27T06:33:43Z</timestamp>
+      <contributor>
+        <username>Mr. Stradivarius</username>
+        <id>4708675</id>
+      </contributor>
+      <comment>tweak removal notice</comment>
+      <model>Scribunto</model>
+      <format>text/plain</format>
+      <text xml:space="preserve" bytes="6192">--------------------------------------------------------------------------------
+--                          Message box configuration                         --
+--                                                                            --
+-- This module contains configuration data for [[Module:Message box]].        --
+--------------------------------------------------------------------------------
+
+return {
+	ambox = {
+		types = {
+			speedy = {
+				class = 'ambox-speedy',
+				image = 'Ambox warning pn.svg'
+			},
+			delete = {
+				class = 'ambox-delete',
+				image = 'Ambox warning pn.svg'
+			},
+			content = {
+				class = 'ambox-content',
+				image = 'Ambox important.svg'
+			},
+			style = {
+				class = 'ambox-style',
+				image = 'Edit-clear.svg'
+			},
+			move = {
+				class = 'ambox-move',
+				image = 'Merge-split-transwiki default.svg'
+			},
+			protection = {
+				class = 'ambox-protection',
+				image = 'Padlock-silver-medium.svg'
+			},
+			notice = {
+				class = 'ambox-notice',
+				image = 'Information icon4.svg'
+			}
+		},
+		default                     = 'notice',
+		allowBlankParams            = {'talk', 'sect', 'date', 'issue', 'fix', 'subst', 'hidden'},
+		allowSmall                  = true,
+		smallParam                  = 'left',
+		smallClass                  = 'mbox-small-left',
+		substCheck                  = true,
+		classes                     = {'metadata', 'plainlinks', 'ambox'},
+		imageEmptyCell              = true,
+		imageCheckBlank             = true,
+		imageSmallSize              = '20x20px',
+		imageCellDiv                = true,
+		useCollapsibleTextFields    = true,
+		imageRightNone              = true,
+		sectionDefault              = 'article',
+		allowMainspaceCategories    = true,
+		templateCategory            = 'Article message templates',
+	        templateCategoryRequireName = true,
+		templateErrorCategory       = 'Article message templates with missing parameters',
+		templateErrorParamsToCheck  = {'issue', 'fix', 'subst'},
+		removalNotice               = '[[Help:Maintenance template removal|Learn how and when to remove this template message]]'
+	},
+	
+	cmbox = {
+		types = {
+			speedy = {
+				class = 'cmbox-speedy',
+				image = 'Ambox warning pn.svg'
+			},
+			delete = {
+				class = 'cmbox-delete',
+				image = 'Ambox warning pn.svg'
+			},
+			content = {
+				class = 'cmbox-content',
+				image = 'Ambox important.svg'
+			},
+			style = {
+				class = 'cmbox-style',
+				image = 'Edit-clear.svg'
+			},
+			move = {
+				class = 'cmbox-move',
+				image = 'Merge-split-transwiki default.svg'
+			},
+			protection = {
+				class = 'cmbox-protection',
+				image = 'Padlock-silver-medium.svg'
+			},
+			notice = {
+				class = 'cmbox-notice',
+				image = 'Information icon4.svg'
+			}
+		},
+		default              = 'notice',
+		showInvalidTypeError = true,
+		classes              = {'plainlinks', 'cmbox'},
+		imageEmptyCell       = true
+	},
+	
+	fmbox = {
+		types = {
+			warning = {
+				class = 'fmbox-warning',
+				image = 'Ambox warning pn.svg'
+			},
+			editnotice = {
+				class = 'fmbox-editnotice',
+				image = 'Information icon4.svg'
+			},
+			system = {
+				class = 'fmbox-system',
+				image = 'Information icon4.svg'
+			}
+		},
+		default              = 'system',
+		showInvalidTypeError = true,
+		classes              = {'plainlinks', 'fmbox'},
+		imageEmptyCell       = false,
+		imageRightNone       = false
+	},
+	
+	imbox = {
+		types = {
+			speedy = {
+				class = 'imbox-speedy',
+				image = 'Ambox warning pn.svg'
+			},
+			delete = {
+				class = 'imbox-delete',
+				image = 'Ambox warning pn.svg'
+			},
+			content = {
+				class = 'imbox-content',
+				image = 'Ambox important.svg'
+			},
+			style = {
+				class = 'imbox-style',
+				image = 'Edit-clear.svg'
+			},
+			move = {
+				class = 'imbox-move',
+				image = 'Merge-split-transwiki default.svg'
+			},
+			protection = {
+				class = 'imbox-protection',
+				image = 'Padlock-silver-medium.svg'
+			},
+			license = {
+				class = 'imbox-license licensetpl',
+				image = 'Imbox license.png' -- @todo We need an SVG version of this
+			},
+			featured = {
+				class = 'imbox-featured',
+				image = 'Cscr-featured.svg'
+			},
+			notice = {
+				class = 'imbox-notice',
+				image = 'Information icon4.svg'
+			}
+		},
+		default              = 'notice',
+		showInvalidTypeError = true,
+		classes              = {'imbox'},
+		usePlainlinksParam   = true,
+		imageEmptyCell       = true,
+		below                = true,
+		templateCategory     = 'File message boxes'
+	},
+	
+	ombox = {
+		types = {
+			speedy = {
+				class = 'ombox-speedy',
+				image = 'Ambox warning pn.svg'
+			},
+			delete = {
+				class = 'ombox-delete',
+				image = 'Ambox warning pn.svg'
+			},
+			content = {
+				class = 'ombox-content',
+				image = 'Ambox important.svg'
+			},
+			style = {
+				class = 'ombox-style',
+				image = 'Edit-clear.svg'
+			},
+			move = {
+				class = 'ombox-move',
+				image = 'Merge-split-transwiki default.svg'
+			},
+			protection = {
+				class = 'ombox-protection',
+				image = 'Padlock-silver-medium.svg'
+			},
+			notice = {
+				class = 'ombox-notice',
+				image = 'Information icon4.svg'
+			}
+		},
+		default              = 'notice',
+		showInvalidTypeError = true,
+		classes              = {'plainlinks', 'ombox'},
+		allowSmall           = true,
+		imageEmptyCell       = true,
+		imageRightNone       = true
+	},
+	
+	tmbox = {
+		types = {
+			speedy = {
+				class = 'tmbox-speedy',
+				image = 'Ambox warning pn.svg'
+			},
+			delete = {
+				class = 'tmbox-delete',
+				image = 'Ambox warning pn.svg'
+			},
+			content = {
+				class = 'tmbox-content',
+				image = 'Ambox important.svg'
+			},
+			style = {
+				class = 'tmbox-style',
+				image = 'Edit-clear.svg'
+			},
+			move = {
+				class = 'tmbox-move',
+				image = 'Merge-split-transwiki default.svg'
+			},
+			protection = {
+				class = 'tmbox-protection',
+				image = 'Padlock-silver-medium.svg'
+			},
+			notice = {
+				class = 'tmbox-notice',
+				image = 'Information icon4.svg'
+			}
+		},
+		default              = 'notice',
+		showInvalidTypeError = true,
+		classes              = {'plainlinks', 'tmbox'},
+		allowSmall           = true,
+		imageRightNone       = true,
+		imageEmptyCell       = true,
+		imageEmptyCellStyle  = true,
+		templateCategory     = 'Talk message boxes'
+	}
+}</text>
+      <sha1>a6none5uj12dahz60gg6hrzxt8tzhmb</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>Module:Namespace detect/config</title>
+    <ns>828</ns>
+    <id>42256703</id>
+    <revision>
+      <id>602886681</id>
+      <parentid>602823531</parentid>
+      <timestamp>2014-04-05T17:03:49Z</timestamp>
+      <contributor>
+        <username>Mr. Stradivarius</username>
+        <id>4708675</id>
+      </contributor>
+      <comment>use cfg.demopage rather than cfg.page now that the default parameter has been changed on the /data page</comment>
+      <model>Scribunto</model>
+      <format>text/plain</format>
+      <text xml:space="preserve" bytes="3545">--------------------------------------------------------------------------------
+--                    Namespace detect configuration data                     --
+--                                                                            --
+-- This module stores configuration data for Module:Namespace detect. Here    --
+-- you can localise the module to your wiki's language.                       --
+--                                                                            --
+-- To activate a configuration item, you need to uncomment it. This means     --
+-- that you need to remove the text &quot;-- &quot; at the start of the line.           --
+--------------------------------------------------------------------------------
+
+local cfg = {} -- Don't edit this line.
+
+--------------------------------------------------------------------------------
+--                              Parameter names                               --
+-- These configuration items specify custom parameter names. Values added     --
+-- here will work in addition to the default English parameter names.         --
+-- To add one extra name, you can use this format:                            --
+--                                                                            --
+-- cfg.foo = 'parameter name'                                                 --
+--                                                                            --
+-- To add multiple names, you can use this format:                            --
+--                                                                            --
+-- cfg.foo = {'parameter name 1', 'parameter name 2', 'parameter name 3'}     --
+--------------------------------------------------------------------------------
+
+---- This parameter displays content for the main namespace:
+-- cfg.main = 'main'
+
+---- This parameter displays in talk namespaces:
+-- cfg.talk = 'talk'
+
+---- This parameter displays content for &quot;other&quot; namespaces (namespaces for which
+---- parameters have not been specified):
+-- cfg.other = 'other'
+
+---- This parameter makes talk pages behave as though they are the corresponding
+---- subject namespace. Note that this parameter is used with [[Module:Yesno]].
+---- Edit that module to change the default values of &quot;yes&quot;, &quot;no&quot;, etc.
+-- cfg.subjectns = 'subjectns'
+
+---- This parameter sets a demonstration namespace:
+-- cfg.demospace = 'demospace'
+
+---- This parameter sets a specific page to compare:
+cfg.demopage = 'page'
+
+--------------------------------------------------------------------------------
+--                           Table configuration                              --
+-- These configuration items allow customisation of the &quot;table&quot; function,     --
+-- used to generate a table of possible parameters in the module              --
+-- documentation.                                                             --
+--------------------------------------------------------------------------------
+
+---- The header for the namespace column in the wikitable containing the list of
+---- possible subject-space parameters.
+-- cfg.wikitableNamespaceHeader = 'Namespace'
+
+---- The header for the wikitable containing the list of possible subject-space
+---- parameters.
+-- cfg.wikitableAliasesHeader = 'Aliases'
+
+--------------------------------------------------------------------------------
+--                        End of configuration data                           --
+--------------------------------------------------------------------------------
+
+return cfg -- Don't edit this line.</text>
+      <sha1>1o6ozz56i8q0xgyl6xa41n2v7kelhli</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>Module:Namespace detect/data</title>
+    <ns>828</ns>
+    <id>42257476</id>
+    <revision>
+      <id>602886511</id>
+      <parentid>602823622</parentid>
+      <timestamp>2014-04-05T17:02:16Z</timestamp>
+      <contributor>
+        <username>Mr. Stradivarius</username>
+        <id>4708675</id>
+      </contributor>
+      <comment>bug fix - use the demospace parameter as both key and value in the argKeys table</comment>
+      <model>Scribunto</model>
+      <format>text/plain</format>
+      <text xml:space="preserve" bytes="2569">--------------------------------------------------------------------------------
+--                          Namespace detect data                             --
+-- This module holds data for [[Module:Namespace detect]] to be loaded per    --
+-- page, rather than per #invoke, for performance reasons.                    --
+--------------------------------------------------------------------------------
+
+local cfg = require('Module:Namespace detect/config')
+
+local function addKey(t, key, defaultKey)
+	if key ~= defaultKey then
+		t[#t + 1] = key
+	end
+end
+
+-- Get a table of parameters to query for each default parameter name.
+-- This allows wikis to customise parameter names in the cfg table while
+-- ensuring that default parameter names will always work. The cfg table
+-- values can be added as a string, or as an array of strings.
+
+local defaultKeys = {
+	'main',
+	'talk',
+	'other',
+	'subjectns',
+	'demospace',
+	'demopage'
+}
+
+local argKeys = {}
+for i, defaultKey in ipairs(defaultKeys) do
+	argKeys[defaultKey] = {defaultKey}
+end
+
+for defaultKey, t in pairs(argKeys) do
+	local cfgValue = cfg[defaultKey]
+	local cfgValueType = type(cfgValue)
+	if cfgValueType == 'string' then
+		addKey(t, cfgValue, defaultKey)
+	elseif cfgValueType == 'table' then
+		for i, key in ipairs(cfgValue) do
+			addKey(t, key, defaultKey)
+		end
+	end
+	cfg[defaultKey] = nil -- Free the cfg value as we don't need it any more.
+end
+
+local function getParamMappings()
+	--[[
+	-- Returns a table of how parameter names map to namespace names. The keys
+	-- are the actual namespace names, in lower case, and the values are the
+	-- possible parameter names for that namespace, also in lower case. The
+	-- table entries are structured like this:
+	-- {
+	--   [''] = {'main'},
+	--   ['wikipedia'] = {'wikipedia', 'project', 'wp'},
+	--   ...
+	-- }
+	--]]
+	local mappings = {}
+	local mainNsName = mw.site.subjectNamespaces[0].name
+	mainNsName = mw.ustring.lower(mainNsName)
+	mappings[mainNsName] = mw.clone(argKeys.main)
+	mappings['talk'] = mw.clone(argKeys.talk)
+	for nsid, ns in pairs(mw.site.subjectNamespaces) do
+		if nsid ~= 0 then -- Exclude main namespace.
+			local nsname = mw.ustring.lower(ns.name)
+			local canonicalName = mw.ustring.lower(ns.canonicalName)
+			mappings[nsname] = {nsname}
+			if canonicalName ~= nsname then
+				table.insert(mappings[nsname], canonicalName)
+			end
+			for _, alias in ipairs(ns.aliases) do
+				table.insert(mappings[nsname], mw.ustring.lower(alias))
+			end
+		end
+	end
+	return mappings
+end
+
+return {
+	argKeys = argKeys,
+	cfg = cfg,
+	mappings = getParamMappings()
+}</text>
+      <sha1>ojp6d3pc8mql5nufaqdg576c9so3479</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>Module:No globals</title>
+    <ns>828</ns>
+    <id>42567026</id>
+    <revision>
+      <id>606781024</id>
+      <parentid>605595284</parentid>
+      <timestamp>2014-05-02T15:35:56Z</timestamp>
+      <contributor>
+        <username>Jackmcbarn</username>
+        <id>19285809</id>
+      </contributor>
+      <comment>rm name exception</comment>
+      <model>Scribunto</model>
+      <format>text/plain</format>
+      <text xml:space="preserve" bytes="307">local mt = getmetatable(_G) or {}
+function mt.__index (t, k)
+	if k ~= 'arg' then
+		error('Tried to read nil global ' .. tostring(k), 2)
+	end
+	return nil
+end
+function mt.__newindex(t, k, v)
+	if k ~= 'arg' then
+		error('Tried to write global ' .. tostring(k), 2)
+	end
+	rawset(t, k, v)
+end
+setmetatable(_G, mt)</text>
+      <sha1>gggsv54pq7f94l3up48hr91qtxnskdm</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>Module:Yesno</title>
+    <ns>828</ns>
+    <id>38665046</id>
+    <revision>
+      <id>659459801</id>
+      <parentid>604718900</parentid>
+      <timestamp>2015-04-27T10:43:30Z</timestamp>
+      <contributor>
+        <username>MSGJ</username>
+        <id>42630</id>
+      </contributor>
+      <comment>recognise &quot;t&quot; for true and &quot;f&quot; for false, per request</comment>
+      <model>Scribunto</model>
+      <format>text/plain</format>
+      <text xml:space="preserve" bytes="710">-- Function allowing for consistent treatment of boolean-like wikitext input.
+-- It works similarly to the template {{yesno}}.
+
+return function (val, default)
+	-- If your wiki uses non-ascii characters for any of &quot;yes&quot;, &quot;no&quot;, etc., you
+	-- should replace &quot;val:lower()&quot; with &quot;mw.ustring.lower(val)&quot; in the
+	-- following line.
+	val = type(val) == 'string' and val:lower() or val
+	if val == nil then
+		return nil
+	elseif val == true 
+		or val == 'yes'
+		or val == 'y'
+		or val == 'true'
+		or val == 't'
+		or tonumber(val) == 1
+	then
+		return true
+	elseif val == false
+		or val == 'no'
+		or val == 'n'
+		or val == 'false'
+		or val == 'f'
+		or tonumber(val) == 0
+	then
+		return false
+	else
+		return default
+	end
+end</text>
+      <sha1>266x81qzpz9iq1b5gft4zsdy5qzbnwi</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>Template:Ambox</title>
+    <ns>10</ns>
+    <id>13179742</id>
+    <revision>
+      <id>704688422</id>
+      <parentid>578398722</parentid>
+      <timestamp>2016-02-12T23:50:56Z</timestamp>
+      <contributor>
+        <username>MSGJ</username>
+        <id>42630</id>
+      </contributor>
+      <minor/>
+      <comment>add temporary tracking category for small amboxes</comment>
+      <model>wikitext</model>
+      <format>text/x-wiki</format>
+      <text xml:space="preserve" bytes="220">{{#invoke:Message box|ambox}}{{#ifeq:{{{small}}}|left|[[Category:Articles using small message boxes]]}}&lt;noinclude&gt;
+{{documentation}}
+&lt;!-- Categories go on the /doc subpage, and interwikis go on Wikidata. --&gt;
+&lt;/noinclude&gt;</text>
+      <sha1>j0j11qao0sl45x6kzzme1ycda7wiz9f</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>Template:Cmbox</title>
+    <ns>10</ns>
+    <id>17171798</id>
+    <revision>
+      <id>683948232</id>
+      <parentid>577968571</parentid>
+      <timestamp>2015-10-03T16:01:17Z</timestamp>
+      <contributor>
+        <username>NeilN</username>
+        <id>409043</id>
+      </contributor>
+      <minor/>
+      <comment>Changed protection level of Template:Cmbox: per request at [[WP:RFPP]] ([Edit=Allow only administrators] (indefinite) [Move=Allow only administrators] (indefinite))</comment>
+      <model>wikitext</model>
+      <format>text/x-wiki</format>
+      <text xml:space="preserve" bytes="146">{{#invoke:Message box|cmbox}}&lt;noinclude&gt;
+{{documentation}}
+&lt;!-- Categories go on the /doc subpage, and interwikis go on Wikidata. --&gt;
+&lt;/noinclude&gt;</text>
+      <sha1>2wg1g94nws2nefrz0o1pxm105lovzoz</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>Template:Fmbox</title>
+    <ns>10</ns>
+    <id>19236000</id>
+    <revision>
+      <id>714241420</id>
+      <parentid>713502398</parentid>
+      <timestamp>2016-04-08T15:00:42Z</timestamp>
+      <contributor>
+        <username>Xaosflux</username>
+        <id>502540</id>
+      </contributor>
+      <minor/>
+      <comment>Changed protection level of Template:Fmbox: multiple mediawiki pages rely on this page ([Edit=Allow only template editors and admins] (indefinite) [Move=Allow only administrators] (indefinite))</comment>
+      <model>wikitext</model>
+      <format>text/x-wiki</format>
+      <text xml:space="preserve" bytes="141">{{#invoke:Message box|fmbox}}&lt;noinclude&gt;
+{{documentation}}
+&lt;!-- Add categories and interwikis to the /doc subpage, not here! --&gt;
+&lt;/noinclude&gt;</text>
+      <sha1>q4qfnrd9je1n71bknyj9gdhs02g2rws</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>Template:Imbox</title>
+    <ns>10</ns>
+    <id>17102136</id>
+    <revision>
+      <id>577968974</id>
+      <parentid>577968896</parentid>
+      <timestamp>2013-10-20T12:44:20Z</timestamp>
+      <contributor>
+        <username>Mr. Stradivarius</username>
+        <id>4708675</id>
+      </contributor>
+      <minor/>
+      <comment>Changed protection level of Template:Imbox: [[WP:High-risk templates|Highly visible template]]: allow template editors to edit ([Edit=Protected template] (indefinite) [Move=Protected template] (indefinite))</comment>
+      <model>wikitext</model>
+      <format>text/x-wiki</format>
+      <text xml:space="preserve" bytes="146">{{#invoke:Message box|imbox}}&lt;noinclude&gt;
+{{documentation}}
+&lt;!-- Categories go on the /doc subpage, and interwikis go on Wikidata. --&gt;
+&lt;/noinclude&gt;</text>
+      <sha1>90yqkd9klfkh2s7isb6vikemdvm668g</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>Template:Mbox</title>
+    <ns>10</ns>
+    <id>13319244</id>
+    <revision>
+      <id>577968069</id>
+      <parentid>498386332</parentid>
+      <timestamp>2013-10-20T12:33:38Z</timestamp>
+      <contributor>
+        <username>Mr. Stradivarius</username>
+        <id>4708675</id>
+      </contributor>
+      <comment>switch to Lua version</comment>
+      <model>wikitext</model>
+      <format>text/x-wiki</format>
+      <text xml:space="preserve" bytes="145">{{#invoke:Message box|mbox}}&lt;noinclude&gt;
+{{documentation}}
+&lt;!-- Categories go on the /doc subpage, and interwikis go on Wikidata. --&gt;
+&lt;/noinclude&gt;</text>
+      <sha1>mpflpb6s8l8gaoxaeypyuqyu2w7vc7i</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>Template:Ombox</title>
+    <ns>10</ns>
+    <id>17522403</id>
+    <revision>
+      <id>577969039</id>
+      <parentid>463278061</parentid>
+      <timestamp>2013-10-20T12:45:08Z</timestamp>
+      <contributor>
+        <username>Mr. Stradivarius</username>
+        <id>4708675</id>
+      </contributor>
+      <comment>switch to Lua version</comment>
+      <model>wikitext</model>
+      <format>text/x-wiki</format>
+      <text xml:space="preserve" bytes="146">{{#invoke:Message box|ombox}}&lt;noinclude&gt;
+{{documentation}}
+&lt;!-- Categories go on the /doc subpage, and interwikis go on Wikidata. --&gt;
+&lt;/noinclude&gt;</text>
+      <sha1>1o93yrjvq6v2ylug2k0uaaltljurje2</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>Template:Tmbox</title>
+    <ns>10</ns>
+    <id>14314129</id>
+    <revision>
+      <id>577969176</id>
+      <parentid>388085963</parentid>
+      <timestamp>2013-10-20T12:46:44Z</timestamp>
+      <contributor>
+        <username>Mr. Stradivarius</username>
+        <id>4708675</id>
+      </contributor>
+      <comment>switch to Lua version</comment>
+      <model>wikitext</model>
+      <format>text/x-wiki</format>
+      <text xml:space="preserve" bytes="146">{{#invoke:Message box|tmbox}}&lt;noinclude&gt;
+{{documentation}}
+&lt;!-- Categories go on the /doc subpage, and interwikis go on Wikidata. --&gt;
+&lt;/noinclude&gt;</text>
+      <sha1>jcav8pdjkvcwg8gc4m0b4gox7yjnxku</sha1>
+    </revision>
+  </page>
+</mediawiki>

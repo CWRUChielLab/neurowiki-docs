@@ -1,0 +1,9 @@
+/* improved spacing between list items */
+
+div.document ol > li {
+    margin-top: 1em;
+}
+
+div.document ul ~ p {
+    margin-top: 1em;
+}

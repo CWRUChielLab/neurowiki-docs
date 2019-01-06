@@ -1,0 +1,347 @@
+<mediawiki xmlns="http://www.mediawiki.org/xml/export-0.10/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mediawiki.org/xml/export-0.10/ http://www.mediawiki.org/xml/export-0.10.xsd" version="0.10" xml:lang="en">
+  <siteinfo>
+    <sitename>Wikipedia</sitename>
+    <dbname>enwiki</dbname>
+    <base>https://en.wikipedia.org/wiki/Main_Page</base>
+    <generator>MediaWiki 1.27.0-wmf.9</generator>
+    <case>first-letter</case>
+    <namespaces>
+      <namespace key="-2" case="first-letter">Media</namespace>
+      <namespace key="-1" case="first-letter">Special</namespace>
+      <namespace key="0" case="first-letter" />
+      <namespace key="1" case="first-letter">Talk</namespace>
+      <namespace key="2" case="first-letter">User</namespace>
+      <namespace key="3" case="first-letter">User talk</namespace>
+      <namespace key="4" case="first-letter">Wikipedia</namespace>
+      <namespace key="5" case="first-letter">Wikipedia talk</namespace>
+      <namespace key="6" case="first-letter">File</namespace>
+      <namespace key="7" case="first-letter">File talk</namespace>
+      <namespace key="8" case="first-letter">MediaWiki</namespace>
+      <namespace key="9" case="first-letter">MediaWiki talk</namespace>
+      <namespace key="10" case="first-letter">Template</namespace>
+      <namespace key="11" case="first-letter">Template talk</namespace>
+      <namespace key="12" case="first-letter">Help</namespace>
+      <namespace key="13" case="first-letter">Help talk</namespace>
+      <namespace key="14" case="first-letter">Category</namespace>
+      <namespace key="15" case="first-letter">Category talk</namespace>
+      <namespace key="100" case="first-letter">Portal</namespace>
+      <namespace key="101" case="first-letter">Portal talk</namespace>
+      <namespace key="108" case="first-letter">Book</namespace>
+      <namespace key="109" case="first-letter">Book talk</namespace>
+      <namespace key="118" case="first-letter">Draft</namespace>
+      <namespace key="119" case="first-letter">Draft talk</namespace>
+      <namespace key="446" case="first-letter">Education Program</namespace>
+      <namespace key="447" case="first-letter">Education Program talk</namespace>
+      <namespace key="710" case="first-letter">TimedText</namespace>
+      <namespace key="711" case="first-letter">TimedText talk</namespace>
+      <namespace key="828" case="first-letter">Module</namespace>
+      <namespace key="829" case="first-letter">Module talk</namespace>
+      <namespace key="2300" case="first-letter">Gadget</namespace>
+      <namespace key="2301" case="first-letter">Gadget talk</namespace>
+      <namespace key="2302" case="case-sensitive">Gadget definition</namespace>
+      <namespace key="2303" case="case-sensitive">Gadget definition talk</namespace>
+      <namespace key="2600" case="first-letter">Topic</namespace>
+    </namespaces>
+  </siteinfo>
+  <page>
+    <title>MediaWiki:Gadget-ReferenceTooltips</title>
+    <ns>8</ns>
+    <id>35323375</id>
+    <revision>
+      <id>485567052</id>
+      <parentid>485565922</parentid>
+      <timestamp>2012-04-04T18:11:42Z</timestamp>
+      <contributor>
+        <username>WOSlinker</username>
+        <id>3138265</id>
+      </contributor>
+      <comment>add link</comment>
+      <model>wikitext</model>
+      <format>text/x-wiki</format>
+      <text xml:space="preserve" bytes="159">[[mw:Reference Tooltips|Reference Tooltips]]: Roll over any inline citation to see reference information, instead of having to jump away from the article text.</text>
+      <sha1>g0hqpxs0t18uefa89piyn982p1e3ha3</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>MediaWiki:Gadget-ReferenceTooltips.css</title>
+    <ns>8</ns>
+    <id>35323396</id>
+    <revision>
+      <id>642588209</id>
+      <parentid>614044467</parentid>
+      <timestamp>2015-01-15T10:38:41Z</timestamp>
+      <contributor>
+        <username>MSGJ</username>
+        <id>42630</id>
+      </contributor>
+      <comment>per request</comment>
+      <model>css</model>
+      <format>text/css</format>
+      <text xml:space="preserve" bytes="2747">/* See [[mw:Reference Tooltips]] */
+ 
+.referencetooltip {
+        position: absolute;
+        list-style: none;
+        list-style-image: none;
+        opacity: 0;
+        font-size: 10px;
+        margin: 0;
+        z-index: 5;
+        padding: 0;
+}
+.referencetooltip li {
+        border: #080086 2px solid;
+        max-width: 260px;
+        padding: 10px 8px 13px 8px;
+        margin: 0px;
+        background-color: #F7F7F7;
+        box-shadow: 2px 4px 2px rgba(0,0,0,0.3);
+        -moz-box-shadow: 2px 4px 2px rgba(0,0,0,0.3);
+        -webkit-box-shadow: 2px 4px 2px rgba(0,0,0,0.3);
+}
+.referencetooltip li+li {
+        margin-left: 7px;
+        margin-top: -2px;
+        border: 0;
+        padding: 0;
+        height: 3px;
+        width: 0px;
+        background-color: transparent;
+        box-shadow: none;
+        -moz-box-shadow: none;
+        -webkit-box-shadow: none;
+        border-top: 12px #080086 solid;
+        border-right: 7px transparent solid;
+        border-left: 7px transparent solid;
+}
+.referencetooltip&gt;li+li::after {
+        content: '';
+        border-top: 8px #F7F7F7 solid;
+        border-right: 5px transparent solid;
+        border-left: 5px transparent solid;
+        margin-top: -12px;
+        margin-left: -5px;
+        z-index: 1;
+        height: 0px;
+        width: 0px;
+        display: block;
+}
+.client-js body .referencetooltip li li {
+        border: none;
+        box-shadow: none;
+        -moz-box-shadow: none;
+        -webkit-box-shadow: none;
+        height: auto;
+        width: auto;
+        margin: auto;
+        padding: 0;
+        position: static;
+}
+.RTflipped {
+        padding-top: 13px;
+}
+.referencetooltip.RTflipped li+li {
+        position: absolute;
+        top: 2px;
+        border-top: 0;
+        border-bottom: 12px #080086 solid;
+}
+.referencetooltip.RTflipped li+li::after {
+        border-top: 0;
+        border-bottom: 8px #F7F7F7 solid;
+        position: absolute;
+        margin-top: 7px;
+}
+.RTsettings {
+        float: right;
+        height: 24px;
+        width: 24px;
+        cursor: pointer;
+        background-image: url(//upload.wikimedia.org/wikipedia/commons/thumb/7/77/Gear_icon.svg/24px-Gear_icon.svg.png);
+        background-image: linear-gradient(transparent, transparent), url(//upload.wikimedia.org/wikipedia/commons/7/77/Gear_icon.svg);
+        margin-top: -9px;
+        margin-right: -7px;
+        -webkit-transition: opacity 0.15s;
+        -moz-transition: opacity 0.15s;
+        -o-transition: opacity 0.15s;
+        -ms-transition: opacity 0.15s;
+        transition: opacity 0.15s;
+        opacity: 0.6;
+        filter: alpha(opacity=60);
+}
+.RTsettings:hover {
+        opacity: 1;
+        filter: alpha(opacity=100);
+}
+.RTTarget {
+        border: #080086 2px solid;
+}</text>
+      <sha1>kl9nf3378lgvla1uko67rfnbig4nad3</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>MediaWiki:Gadget-ReferenceTooltips.js</title>
+    <ns>8</ns>
+    <id>35323386</id>
+    <revision>
+      <id>677051969</id>
+      <parentid>617493009</parentid>
+      <timestamp>2015-08-20T20:33:17Z</timestamp>
+      <contributor>
+        <username>Krinkle</username>
+        <id>9014223</id>
+      </contributor>
+      <model>javascript</model>
+      <format>text/javascript</format>
+      <text xml:space="preserve" bytes="9530">// See [[mw:Reference Tooltips]]
+// Source https://en.wikipedia.org/wiki/MediaWiki:Gadget-ReferenceTooltips.js
+
+window.pg || $(document).ready( function($) {
+
+    // Make sure we are in article, project, or help namespace
+    //if ( $.inArray(mw.config.get('wgCanonicalNamespace'), ['' , 'Project' , 'Help' ]) !== -1) {
+    if (true) {
+        function toggleRT(o){
+            mw.loader.using(&quot;jquery.cookie&quot;,function(){
+                    $.cookie(&quot;RTsettings&quot;,o+&quot;|&quot;+ settings[1] + &quot;|&quot; + settings[2], {path:&quot;/&quot;,expires:90});
+                    location.reload();
+            })
+        }
+        var settings = document.cookie.split(&quot;RTsettings=&quot;)[1];
+        settings = settings ? settings.split(&quot;;&quot;)[0].split(&quot;%7C&quot;) : [1, 200, +(&quot;ontouchstart&quot; in document.documentElement)];
+        if( settings[0] == 0 ) {
+            var footer = $(&quot;#footer-places, #f-list&quot;);
+            if( footer.length === 0 ) {
+                    footer = $(&quot;#footer li&quot;).parent();
+            }
+            footer.append($(&quot;&lt;li&gt;&quot;).append($(&quot;&lt;a&gt;&quot;).text(&quot;Enable Reference Tooltips&quot;).attr(&quot;href&quot;,&quot;javascript:(function(){})()&quot;).click(function(){toggleRT(1)})));
+            return;
+        }
+        var isTouchscreen = +settings[2],
+            timerLength = isTouchscreen ? 0 : +settings[1],
+            settingsMenu;
+        $(&quot;.reference&quot;).each( function() {
+            var tooltipNode, hideTimer, showTimer, checkFlip = false;
+            function findRef( h ){
+                    h = h.firstChild.getAttribute(&quot;href&quot;); h = h &amp;&amp; h.split(&quot;#&quot;); h = h &amp;&amp; h[1];
+                    h = h &amp;&amp; document.getElementById( h );
+                    h = h &amp;&amp; h.nodeName == &quot;LI&quot; &amp;&amp; h;
+                    return h;
+            }
+            function hide( refLink ){
+                    if( tooltipNode &amp;&amp; tooltipNode.parentNode == document.body ) {
+                            hideTimer = setTimeout( function() {
+                                    $(tooltipNode).animate({opacity: 0}, 100, function(){ document.body.removeChild( tooltipNode ) })
+                            }, isTouchscreen ? 16 : 100)
+                    } else {
+                            var h = findRef( refLink );
+                            h &amp;&amp; (h.style.border = &quot;&quot;);
+                    }
+            }
+            function show(){
+                    if( !tooltipNode.parentNode || tooltipNode.parentNode.nodeType === 11 ){
+                            document.body.appendChild( tooltipNode );
+                            checkFlip = true;
+                    }
+                    $(tooltipNode).stop().animate({opacity: 1}, 100)
+                    clearTimeout( hideTimer );
+            }
+            function openSettingsMenu(){
+                    if( settingsMenu ) {
+                            settingsMenu.dialog( &quot;open&quot; );
+                    } else {
+                            settingsMenu = $(&quot;&lt;form&gt;&quot;).append(
+                                    $(&quot;&lt;button&gt;&quot;).css(&quot;width&quot;,&quot;100%&quot;).text(&quot;Disable Reference Tooltips&quot;).button().click(function(){toggleRT(0)}),
+                                    $(&quot;&lt;br&gt;&quot;),
+                                    $(&quot;&lt;small&gt;&quot;).text(&quot;Once disabled, Reference Tooltips can be re-enabled using a link in the footer of the page.&quot;),
+                                    $(&quot;&lt;hr&gt;&quot;),
+                                    $(&quot;&lt;label&gt;&quot;).text(&quot;Delay before the tooltip appears (in milliseconds): &quot;).append($(&quot;&lt;input&gt;&quot;).attr({&quot;type&quot;:&quot;number&quot;,&quot;value&quot;:settings[1],step:50,min:0,max:5000})),
+                                    $(&quot;&lt;br&gt;&quot;),
+                                    $(&quot;&lt;span&gt;&quot;).text(&quot;Tooltip is activated by:&quot;),
+                                    $(&quot;&lt;label&gt;&quot;).append(
+                                            $(&quot;&lt;input&gt;&quot;).attr({&quot;type&quot;:&quot;radio&quot;, &quot;name&quot;:&quot;RTActivate&quot;, &quot;checked&quot;:settings[2]==0&amp;&amp;&quot;checked&quot;, &quot;disabled&quot;:&quot;ontouchstart&quot; in document.documentElement&amp;&amp;&quot;disabled&quot;}),
+                                            &quot;hovering&quot;
+                                    ),
+                                    $(&quot;&lt;label&gt;&quot;).append(
+                                            $(&quot;&lt;input&gt;&quot;).attr({&quot;type&quot;:&quot;radio&quot;, &quot;name&quot;:&quot;RTActivate&quot;, &quot;checked&quot;:settings[2]==1&amp;&amp;&quot;checked&quot;}),
+                                            &quot;clicking&quot;
+                                    )
+                            ).submit(function(e){e.preventDefault()}).dialog({modal:true,width:500,title:&quot;Reference Tooltips options&quot;,buttons:{&quot;Save settings&quot;:function(){
+                                    var a = this.getElementsByTagName(&quot;input&quot;),
+                                            b = +a[0].value;
+                                    $.cookie(&quot;RTsettings&quot;,&quot;1|&quot;+ (b &gt; -1 &amp;&amp; b &lt; 5001 ? b : settings[1]) + (a[1].checked ? &quot;|0&quot; : &quot;|1&quot;), {path:&quot;/&quot;,expires:90});
+                                    location.reload();
+                            }}});
+                    }
+            }
+            $(this)[ isTouchscreen ? 'click' : 'hover' ](function( e ){
+                    var _this = this;
+                    if( isTouchscreen ) {
+                            e.preventDefault();
+                            (tooltipNode &amp;&amp; tooltipNode.parentNode == document.body) || setTimeout( function(){
+                                    $( document.body ).on(&quot;click touchstart&quot;, function( e ) {
+                                            e = e || event;
+                                            e = e.target || e.srcElement;
+                                            for( ; e &amp;&amp; !$( e ).hasClass( &quot;referencetooltip&quot; ) ; )
+                                                    e = e.parentNode;
+                                            if( !e ){
+                                                    clearTimeout( showTimer );
+                                                    hide( _this );
+                                                    $(document.body).off(&quot;click touchstart&quot;, arguments.callee)
+                                            }
+                                    })
+                            }, 0);
+                    }
+                    showTimer &amp;&amp; clearTimeout( showTimer );
+                    showTimer = setTimeout( function() {
+                            var h = findRef( _this );
+                            if( !h ){return};
+                            if( !isTouchscreen &amp;&amp; ( window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0 ) + $(window).height() &gt; $( h ).offset().top + h.offsetHeight ) {
+                                    h.style.border = &quot;#080086 2px solid&quot;;
+                                    return;
+                            }
+                            if(!tooltipNode){
+                                    tooltipNode = document.createElement(&quot;ul&quot;);
+                                    tooltipNode.className = &quot;referencetooltip&quot;;
+                                    var c = tooltipNode.appendChild( h.cloneNode( true ) );
+                                    try {
+                                            if( c.firstChild.nodeName != &quot;A&quot; ) {
+                                                    while( c.childNodes[1].nodeName == &quot;A&quot; &amp;&amp; c.childNodes[1].getAttribute( &quot;href&quot; ).indexOf(&quot;#cite_ref-&quot;) !== -1 ) {
+                                                            do { c.removeChild( c.childNodes[1] ) } while ( c.childNodes[1].nodeValue == &quot; &quot; );
+                                                    }
+                                            }
+                                    } catch (e) { mw.log(e) }
+                                    c.removeChild( c.firstChild );
+                                    $( tooltipNode.firstChild.insertBefore( document.createElement( &quot;span&quot; ), tooltipNode.firstChild.firstChild ) ).addClass(&quot;RTsettings&quot;).attr(&quot;title&quot;, &quot;Tooltip settings&quot;).click(function(){
+                                            mw.loader.using([&quot;jquery.cookie&quot;,&quot;jquery.ui.dialog&quot;], openSettingsMenu);
+                                    })
+                                    tooltipNode.appendChild( document.createElement( &quot;li&quot; ) );
+                                    isTouchscreen || $(tooltipNode).hover(show, hide);
+                            }
+                            show();
+                            var o = $(_this).offset(), oH = tooltipNode.offsetHeight;
+                            $(tooltipNode).css({top: o.top - oH, left: o.left - 7 });
+                            if( tooltipNode.offsetHeight &gt; oH ) { // is it squished against the right side of the page?
+                                    $(tooltipNode).css({left:'auto',right:0});
+                                    tooltipNode.lastChild.style.marginLeft = (o.left - tooltipNode.offsetLeft) + &quot;px&quot;;
+                            }
+                            if( checkFlip ) {
+                                    if( o.top &lt; tooltipNode.offsetHeight + ( window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0 ) ) { // is part of it above the top of the screen?
+                                            $(tooltipNode).addClass(&quot;RTflipped&quot;).css({top: o.top + 12});
+                                    } else if( tooltipNode.className === &quot;referencetooltip RTflipped&quot; ) { // cancel previous
+                                            $(tooltipNode).removeClass(&quot;RTflipped&quot;);
+                                    }
+                                    checkFlip = false;
+                            }
+                    }, timerLength);
+            }, isTouchscreen ? undefined : function(){clearTimeout(showTimer); hide(this); } )
+ 
+        } );
+        
+    }
+
+} );</text>
+      <sha1>q3kj97nvdrlbv2h4xp0jqaksslu2dg2</sha1>
+    </revision>
+  </page>
+</mediawiki>

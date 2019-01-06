@@ -1,0 +1,83 @@
+diff --git a/includes/skins/SkinMinerva.php b/includes/skins/SkinMinerva.php
+index b17ada0..c83d489 100644
+--- a/includes/skins/SkinMinerva.php
++++ b/includes/skins/SkinMinerva.php
+@@ -312,10 +312,30 @@ class SkinMinerva extends SkinTemplate {
+                global $wgMFNearby;
+
+                $items = array(
+-                       'home' => array(
+-                               'text' => wfMessage( 'mobile-frontend-home-button' )->escaped(),
+-                               'href' => Title::newMainPage()->getLocalUrl(),
+-                               'class' => 'icon-home',
++                       'syllabus' => array(
++                               'text' => 'Syllabus',
++                               'href' => Title::newFromText( 'nw:Course syllabus' )->getLocalUrl(),
++                               'class' => 'icon-syllabus',
++                       ),
++                       'policies' => array(
++                               'text' => 'Policies',
++                               'href' => Title::newFromText( 'nw:Course policies' )->getLocalUrl(),
++                               'class' => 'icon-policies',
++                       ),
++                       'grades' => array(
++                               'text' => 'Grades',
++                               'href' => Title::newFromText( 'nw:Special:Grades' )->getLocalUrl(),
++                               'class' => 'icon-grades',
++                       ),
++                       'labnotebook' => array(
++                               'text' => 'Lab Notebook',
++                               'href' => Title::newFromText( 'Special:UserLogin' )->getLocalUrl( 'returnto=nw:Special:MyPage' ),
++                               'class' => 'icon-home',
++                       ),
++                       'termpapers' => array(
++                               'text' => 'Term Papers',
++                               'href' => Title::newFromText( 'nwp:Main Page' )->getLocalUrl(),
++                               'class' => 'icon-termpapers',
+                        ),
+                        'random' => array(
+                                'text' => wfMessage( 'mobile-frontend-random-button' )->escaped(),
+diff --git a/less/common/hacks.less b/less/common/hacks.less
+index 59fb6b3..6496480 100644
+--- a/less/common/hacks.less
++++ b/less/common/hacks.less
+@@ -16,10 +16,10 @@ FIXME: Review all of these hacks to see if they still apply.
+ .content {
+        // Hide cleanup templates by default to non-javascript users as these stop them from reading the article itself
+        // Note not in issues.less as that is only loaded via JavaScript
+-       .ambox,
++       .ambox:not(.simbox),
+        #coordinates,
+        // Hide article badges, clean-up notices, stub notices, and navigation boxes
+-       .navbox, .vertical-navbox, .topicon, .metadata {
++       .navbox, .vertical-navbox, .topicon, .metadata:not(.simbox) {
+                // It's important as some of these are tables which become display: table on larger screens
+                display: none !important;
+        }
+diff --git a/less/common/mainmenu.less b/less/common/mainmenu.less
+index 8ccf1ba..5a46631 100644
+--- a/less/common/mainmenu.less
++++ b/less/common/mainmenu.less
+@@ -104,6 +104,22 @@
+                        .background-image('images/menu/home.png');
+                }
+
++               &.icon-syllabus a {
++                       .background-image('/CourseMaterials/Images/mobile-icon-syllabus.png');
++               }
++
++               &.icon-policies a {
++                       .background-image('/CourseMaterials/Images/mobile-icon-policies.png');
++               }
++
++               &.icon-grades a {
++                       .background-image('/CourseMaterials/Images/mobile-icon-grades.png');
++               }
++
++               &.icon-termpapers a {
++                       .background-image('/CourseMaterials/Images/mobile-icon-termpapers.png');
++               }
++
+                &.icon-random a {
+                        .background-image('images/menu/random.png');
+                }

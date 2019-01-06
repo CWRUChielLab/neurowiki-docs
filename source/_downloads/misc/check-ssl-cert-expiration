@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# Place this script in /usr/local/sbin and make it executable (chmod +x).
+#
+# This script will print out the expiration dates for all SSL certificates
+# located in CERTDIR or its subdirectories.
+
+
+# Function for aborting with an error message
+
+die () {
+    echo >&2 "$@"
+    exit 1
+}
+
+
+# Require that the user is root.
+
+[ "$UID" -eq 0 ] || die "Aborted: superuser privileges needed (rerun with sudo)"
+
+
+# The certificate files are expected to be found in CERTDIR with a specific
+# naming scheme.
+
+CERTDIR="/media/sf_ssl-certificates"
+
+
+# Find and report expiration dates for certificates.
+
+find $CERTDIR -name "*_cert.cer" -print -exec bash -c "openssl x509 -noout -enddate -in {} | sed -e 's/\(.*\)=\(.*\)/  \2/'" \;
+
+exit 0

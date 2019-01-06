@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# Place this script in /usr/local/sbin and make it executable (chmod +x).
+#
+# This script will toggle the MediaWiki variable $wgDisableUploadScriptChecks.
+# This variable should be set to false to improve security, but occasionally it
+# must temporarily be set to true so that certain files (e.g., Chapter02.nb from
+# BIOL 300) can be uploaded, since MediaWiki mistakenly thinks it contains
+# malicious code.
+
+
+# Function for aborting with an error message
+
+die () {
+    echo >&2 "$@"
+    exit 1
+}
+
+
+# Require that the user is root.
+
+[ "$UID" -eq 0 ] || die "Aborted: superuser privileges needed (rerun with sudo)"
+
+
+# Get the current state of the $wgDisableUploadScriptChecks variable
+
+STATE=$(grep ^\$wgDisableUploadScriptChecks /var/www/mediawiki/LocalSettings.php | awk '{ print $3 }')
+
+
+# Determine the new state
+
+if [ "$STATE" == "false;" ]; then
+    NEWSTATE="true;"
+    echo "Security checks on wiki file uploads are now DISABLED. RE-ENABLE WHEN YOU'RE DONE!"
+else
+    NEWSTATE="false;"
+    echo "Security checks on wiki file uploads are now ENABLED."
+fi
+
+
+# Set the new state.
+
+sed -i '/^\$wgDisableUploadScriptChecks/s|= \(.*\);|= '$NEWSTATE'|' /var/www/mediawiki/LocalSettings.php
+
+exit 0

@@ -1,0 +1,22 @@
+.collapsible {
+    border-left: 1px solid #ccc;
+    padding-left: 10px;
+}
+
+.collapsible > p:first-child {
+    font-weight: bold;
+}
+
+.collapsible > p:first-child:before {
+    content: "Show ";
+}
+.collapsible > p:first-child:after {
+    content: " ▼";
+}
+
+.collapsible.open > p:first-child:before {
+    content: "Hide ";
+}
+.collapsible.open > p:first-child:after {
+    content: " ▲";
+}

@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# Place this script in /usr/local/sbin and make it executable (chmod +x).
+#
+# This script will toggle the locked state of the wiki. When the wiki is locked,
+# only admins and term paper authors with a deadline extension can edit the
+# wiki.
+
+
+# Function for aborting with an error message
+
+die () {
+    echo >&2 "$@"
+    exit 1
+}
+
+
+# Require that the user is root.
+
+[ "$UID" -eq 0 ] || die "Aborted: superuser privileges needed (rerun with sudo)"
+
+
+# Get the current state of the $wikiLocked variable
+
+STATE=$(grep ^\$wikiLocked /var/www/mediawiki/LocalSettings.php | awk '{ print $3 }')
+
+
+# Determine the new state
+
+if [ "$STATE" == "true;" ]; then
+    NEWSTATE="false;"
+    echo "Wiki is now UNLOCKED. Non-admins CAN make edits."
+else
+    NEWSTATE="true;"
+    echo "Wiki is now LOCKED. Non-admins CANNOT make edits (unless they have a term paper deadline extension, set using Special:UserRights and listed at Special:ListUsers)."
+fi
+
+
+# Set the new state.
+
+sed -i '/^\$wikiLocked/s|= \(.*\);|= '$NEWSTATE'|' /var/www/mediawiki/LocalSettings.php
+
+exit 0
