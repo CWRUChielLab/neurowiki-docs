@@ -1,6 +1,21 @@
 NeuroWiki Documentation
 ================================================================================
 
+.. image:: https://readthedocs.org/projects/neurowiki-docs/badge/?version=latest
+    :target: ReadTheDocs_
+    :alt: Documentation Status
+
+This repository contains the source code for generating documentation that
+explains how to build a wiki_ for the course BIOL 373. The source code is
+automatically recompiled each time it is changed, and the compiled documentation
+is hosted on ReadTheDocs_.
+
+.. _ReadTheDocs:    https://neurowiki-docs.readthedocs.io/
+.. _wiki:           https://neurowiki.case.edu/
+
+The source code can also be compiled on your local computer using the basic
+instructions below.
+
 Dependencies
 --------------------------------------------------------------------------------
 
